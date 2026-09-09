@@ -2,7 +2,6 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-from snowflake.snowpark.context import get_active_session
 
 # ============================================================
 # REAL ESTATE ANALYTICS - PRODUCTION STYLE STREAMLIT DASHBOARD
@@ -108,10 +107,13 @@ st.markdown(
 )
 
 # ============================================================
-# SNOWFLAKE SESSION
+# SNOWFLAKE CONNECTION
 # ============================================================
+# Works on Streamlit Community Cloud using [connections.snowflake]
+# secrets, and also works in Streamlit in Snowflake.
 
-session = get_active_session()
+conn = st.connection("snowflake")
+session = conn.session()
 
 # ============================================================
 # LOAD SEMANTIC DATA
