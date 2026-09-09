@@ -28,7 +28,7 @@ import altair as alt
 
 st.set_page_config(
     page_title="Real Estate Analytics",
-    page_icon="🏠",
+    page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -58,12 +58,13 @@ st.markdown(
     }
 
     [data-testid="stMetricValue"] {
-        font-size: 25px;
+        font-size: 22px;
         font-weight: 700;
         line-height: 1.15;
-        white-space: nowrap;
+        white-space: normal;
         overflow: visible;
         text-overflow: clip;
+        word-break: keep-all;
     }
 
     [data-testid="stMetric"] {
@@ -154,17 +155,33 @@ df["BHK"] = df["BHK"].astype("string").fillna("Unknown")
 # ============================================================
 
 def format_lakhs(value):
-    # Display real-estate values compactly so KPI cards never truncate.
+    """Format INR values stored in lakhs using readable real-estate units."""
     if value is None or pd.isna(value):
         return "₹0"
 
     value = float(value)
+    sign = "-" if value < 0 else ""
+    value = abs(value)
 
-    # 100 lakhs = 1 crore.
-    if abs(value) >= 100:
-        return f"₹{value / 100:,.2f} Cr"
+    if value >= 100:
+        return f"{sign}₹{value / 100:,.2f} Cr"
+    return f"{sign}₹{value:,.2f} L"
 
-    return f"₹{value:,.2f} L"
+
+def format_kpi_sales(value):
+    """Compact KPI formatter so large values always fit inside KPI cards."""
+    if value is None or pd.isna(value):
+        return "₹0"
+
+    value = float(value)
+    sign = "-" if value < 0 else ""
+    value = abs(value)
+
+    if value >= 100:
+        return f"{sign}₹{value / 100:,.2f} Cr"
+    if value >= 1:
+        return f"{sign}₹{value:,.1f} L"
+    return f"{sign}₹{value:,.2f} L"
 
 
 def format_price(value):
@@ -204,7 +221,7 @@ def clean_numeric_columns(frame):
 # SIDEBAR NAVIGATION
 # ============================================================
 
-st.sidebar.title("🏠 Real Estate Analytics")
+st.sidebar.title("Real Estate Analytics")
 st.sidebar.caption("Management Analytics Platform")
 
 page = st.sidebar.radio(
@@ -384,7 +401,7 @@ cancellation_rate = (
 
 if page == "Executive Summary":
 
-    st.title("🏠 Real Estate Analytics")
+    st.title("Real Estate Analytics")
     st.markdown(
         '<div class="dashboard-subtitle">'
         "Executive performance overview across cities, developers and property segments"
@@ -399,13 +416,13 @@ if page == "Executive Summary":
     st.markdown('<div class="section-title">Key Performance Indicators</div>',
                 unsafe_allow_html=True)
 
-    k1, k2, k3, k4, k5 = st.columns([1, 1.15, 1.05, 1, 1])
+    k1, k2, k3, k4, k5 = st.columns([1, 1.30, 1.05, 1, 1])
 
     with k1:
         st.metric("Transactions", f"{total_transactions:,}")
 
     with k2:
-        st.metric("Total Sales Value", format_lakhs(total_sales))
+        st.metric("Total Sales Value", format_kpi_sales(total_sales))
 
     with k3:
         st.metric("Avg Sale Price", format_price(avg_sale_price))
