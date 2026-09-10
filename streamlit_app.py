@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+from streamlit_autorefresh import st_autorefresh
 
 # ============================================================
 # REAL ESTATE ANALYTICS - PRODUCTION STYLE STREAMLIT DASHBOARD
@@ -29,14 +30,13 @@ import altair as alt
 # ============================================================
 # AUTOMATIC DATA REFRESH
 # ============================================================
-# Streamlit 1.63+ provides native fragment auto-reruns.
-# Every 60 seconds this triggers a full app rerun, causing the
-# Snowflake query below to execute again and pick up new records.
-@st.fragment(run_every="60s")
-def automatic_refresh():
-    st.rerun()
-
-automatic_refresh()
+# Snowpipe + downstream Snowflake tasks load new data.
+# Re-run the Streamlit app every 60 seconds so the semantic
+# view is queried again and the dashboard picks up new rows.
+st_autorefresh(
+    interval=60_000,
+    key="real_estate_dashboard_refresh"
+)
 
 st.set_page_config(
     page_title="Real Estate Analytics",
@@ -235,6 +235,9 @@ def clean_numeric_columns(frame):
 
 st.sidebar.title("Real Estate Analytics")
 st.sidebar.caption("Management Analytics Platform")
+
+if st.sidebar.button("🔄 Refresh data now", width="stretch"):
+    st.rerun()
 
 page = st.sidebar.radio(
     "Navigate",
