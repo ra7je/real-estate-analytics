@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+from streamlit_autorefresh import st_autorefresh
 
 # ============================================================
 # REAL ESTATE ANALYTICS - PRODUCTION STYLE STREAMLIT DASHBOARD
@@ -25,6 +26,13 @@ import altair as alt
 #   rerunning/refreshing the Streamlit app reflects the data.
 #   Streamlit width uses the current width='stretch' API.
 # ============================================================
+
+# ============================================================
+# AUTOMATIC DATA REFRESH
+# ============================================================
+# Re-run the full dashboard every 60 seconds so newly loaded
+# Snowflake records appear automatically after Snowpipe/tasks finish.
+st_autorefresh(interval=60_000, key="real_estate_auto_refresh")
 
 st.set_page_config(
     page_title="Real Estate Analytics",
