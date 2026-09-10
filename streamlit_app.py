@@ -284,67 +284,67 @@ date_range = st.sidebar.date_input(
     key=date_filter_key,
 )
 
-cities = sorted(df["CITY_NAME"].dropna().unique().tolist())
-selected_cities = st.sidebar.multiselect(
-    "City",
-    cities,
-    default=cities,
-)
+# Missing values are represented explicitly so the default "all" selection
+# does not silently remove rows containing NULL dimension attributes.
+MISSING_LABEL = "(Missing)"
 
-regions = sorted(df["REGION"].dropna().unique().tolist())
-selected_regions = st.sidebar.multiselect(
-    "Region",
-    regions,
-    default=regions,
-)
+def filter_options(column):
+    values = sorted(df[column].dropna().unique().tolist())
+    if df[column].isna().any():
+        values.append(MISSING_LABEL)
+    return values
 
-city_classes = sorted(df["CITY_CLASS"].dropna().unique().tolist())
+def apply_multiselect_filter(frame, column, selected_values):
+    if not selected_values:
+        return frame.iloc[0:0]
+    include_missing = MISSING_LABEL in selected_values
+    normal_values = [v for v in selected_values if v != MISSING_LABEL]
+
+    mask = frame[column].isin(normal_values)
+    if include_missing:
+        mask = mask | frame[column].isna()
+
+    return frame[mask]
+
+cities = filter_options("CITY_NAME")
+selected_cities = st.sidebar.multiselect("City", cities, default=cities)
+
+regions = filter_options("REGION")
+selected_regions = st.sidebar.multiselect("Region", regions, default=regions)
+
+city_classes = filter_options("CITY_CLASS")
 selected_city_classes = st.sidebar.multiselect(
-    "City Class",
-    city_classes,
-    default=city_classes,
+    "City Class", city_classes, default=city_classes
 )
 
-developers = sorted(df["DEVELOPER_NAME"].dropna().unique().tolist())
+developers = filter_options("DEVELOPER_NAME")
 selected_developers = st.sidebar.multiselect(
-    "Developer",
-    developers,
-    default=developers,
+    "Developer", developers, default=developers
 )
 
-segments = sorted(df["SEGMENT"].dropna().unique().tolist())
+segments = filter_options("SEGMENT")
 selected_segments = st.sidebar.multiselect(
-    "Segment",
-    segments,
-    default=segments,
+    "Segment", segments, default=segments
 )
 
-property_types = sorted(df["PROPERTY_TYPE"].dropna().unique().tolist())
+property_types = filter_options("PROPERTY_TYPE")
 selected_property_types = st.sidebar.multiselect(
-    "Property Type",
-    property_types,
-    default=property_types,
+    "Property Type", property_types, default=property_types
 )
 
-project_statuses = sorted(df["PROJECT_STATUS"].dropna().unique().tolist())
+project_statuses = filter_options("PROJECT_STATUS")
 selected_project_statuses = st.sidebar.multiselect(
-    "Project Status",
-    project_statuses,
-    default=project_statuses,
+    "Project Status", project_statuses, default=project_statuses
 )
 
-sales_channels = sorted(df["SALES_CHANNEL"].dropna().unique().tolist())
+sales_channels = filter_options("SALES_CHANNEL")
 selected_sales_channels = st.sidebar.multiselect(
-    "Sales Channel",
-    sales_channels,
-    default=sales_channels,
+    "Sales Channel", sales_channels, default=sales_channels
 )
 
-txn_statuses = sorted(df["TXN_STATUS"].dropna().unique().tolist())
+txn_statuses = filter_options("TXN_STATUS")
 selected_txn_statuses = st.sidebar.multiselect(
-    "Transaction Status",
-    txn_statuses,
-    default=txn_statuses,
+    "Transaction Status", txn_statuses, default=txn_statuses
 )
 
 # ============================================================
@@ -359,50 +359,33 @@ if len(date_range) == 2:
         & (filtered_df["TXN_DATE"] <= date_range[1])
     ]
 
-if selected_cities:
-    filtered_df = filtered_df[
-        filtered_df["CITY_NAME"].isin(selected_cities)
-    ]
-
-if selected_regions:
-    filtered_df = filtered_df[
-        filtered_df["REGION"].isin(selected_regions)
-    ]
-
-if selected_city_classes:
-    filtered_df = filtered_df[
-        filtered_df["CITY_CLASS"].isin(selected_city_classes)
-    ]
-
-if selected_developers:
-    filtered_df = filtered_df[
-        filtered_df["DEVELOPER_NAME"].isin(selected_developers)
-    ]
-
-if selected_segments:
-    filtered_df = filtered_df[
-        filtered_df["SEGMENT"].isin(selected_segments)
-    ]
-
-if selected_property_types:
-    filtered_df = filtered_df[
-        filtered_df["PROPERTY_TYPE"].isin(selected_property_types)
-    ]
-
-if selected_project_statuses:
-    filtered_df = filtered_df[
-        filtered_df["PROJECT_STATUS"].isin(selected_project_statuses)
-    ]
-
-if selected_sales_channels:
-    filtered_df = filtered_df[
-        filtered_df["SALES_CHANNEL"].isin(selected_sales_channels)
-    ]
-
-if selected_txn_statuses:
-    filtered_df = filtered_df[
-        filtered_df["TXN_STATUS"].isin(selected_txn_statuses)
-    ]
+filtered_df = apply_multiselect_filter(
+    filtered_df, "CITY_NAME", selected_cities
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "REGION", selected_regions
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "CITY_CLASS", selected_city_classes
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "DEVELOPER_NAME", selected_developers
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "SEGMENT", selected_segments
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "PROPERTY_TYPE", selected_property_types
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "PROJECT_STATUS", selected_project_statuses
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "SALES_CHANNEL", selected_sales_channels
+)
+filtered_df = apply_multiselect_filter(
+    filtered_df, "TXN_STATUS", selected_txn_statuses
+)
 
 # ============================================================
 # COMMON KPI CALCULATIONS
