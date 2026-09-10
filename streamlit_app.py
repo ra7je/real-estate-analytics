@@ -262,6 +262,7 @@ page = st.sidebar.radio(
 
 st.sidebar.divider()
 st.sidebar.header("Dashboard Filters")
+st.sidebar.caption(f"Snowflake rows loaded: {len(df):,}")
 
 # ============================================================
 # SIDEBAR FILTERS
@@ -270,11 +271,17 @@ st.sidebar.header("Dashboard Filters")
 min_date = df["TXN_DATE"].min()
 max_date = df["TXN_DATE"].max()
 
+# Include the current data bounds in the widget key. This forces Streamlit
+# to create a fresh date-range widget when new transaction dates/data arrive,
+# instead of keeping an old session's date selection.
+date_filter_key = f"date_range_{min_date}_{max_date}_{len(df)}"
+
 date_range = st.sidebar.date_input(
     "Date Range",
     value=(min_date, max_date),
     min_value=min_date,
     max_value=max_date,
+    key=date_filter_key,
 )
 
 cities = sorted(df["CITY_NAME"].dropna().unique().tolist())
