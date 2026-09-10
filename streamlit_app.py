@@ -125,6 +125,13 @@ st.markdown(
 # session cannot keep using an expired Snowflake authentication token.
 conn = st.connection("snowflake", ttl=300)
 
+# Manual refresh: reset the Snowflake connection and immediately
+# rerun the dashboard. This is only a backup; automatic refresh
+# below already reruns the app every 60 seconds.
+if st.sidebar.button("🔄 Refresh data now", width="stretch"):
+    conn.reset()
+    st.rerun()
+
 # ============================================================
 # LOAD SEMANTIC DATA
 # ============================================================
