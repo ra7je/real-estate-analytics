@@ -30,20 +30,16 @@ from streamlit_autorefresh import st_autorefresh
 # ============================================================
 # AUTOMATIC DATA REFRESH
 # ============================================================
-# Snowpipe + downstream Snowflake tasks load new data.
-# Re-run the Streamlit app every 60 seconds so the semantic
-# view is queried again and the dashboard picks up new rows.
-st_autorefresh(
-    interval=60_000,
-    key="real_estate_dashboard_refresh"
-)
-
 st.set_page_config(
     page_title="Real Estate Analytics",
     page_icon="📊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Re-run the full dashboard every 60 seconds so newly loaded
+# Snowflake records appear automatically after Snowpipe/tasks finish.
+st_autorefresh(interval=60_000, key="real_estate_auto_refresh")
 
 # ============================================================
 # PROFESSIONAL DASHBOARD STYLING
@@ -125,8 +121,9 @@ st.markdown(
 # Works on Streamlit Community Cloud using [connections.snowflake]
 # secrets, and also works in Streamlit in Snowflake.
 
-conn = st.connection("snowflake")
-session = conn.session()
+# The connection is periodically recreated so a long-lived Streamlit
+# session cannot keep using an expired Snowflake authentication token.
+conn = st.connection("snowflake", ttl=300)
 
 # ============================================================
 # LOAD SEMANTIC DATA
@@ -153,7 +150,17 @@ SELECT
 FROM REAL_ESTATE_ANALYTICS.SEMANTIC.VW_TRANSACTION_ANALYTICS
 """
 
-df = session.sql(QUERY).to_pandas()
+# ttl=0 disables query-result caching, so every dashboard rerun reads
+# the current contents of the Snowflake semantic view. If a cached
+# connection has become stale, reset it once and retry the query.
+try:
+    df = conn.query(QUERY, ttl=0, show_spinner=False)
+except Exception as exc:
+    if "390114" in str(exc) or "Authentication token has expired" in str(exc):
+        conn.reset()
+        df = conn.query(QUERY, ttl=0, show_spinner=False)
+    else:
+        raise
 
 if df.empty:
     st.warning("No transaction data is currently available.")
@@ -235,9 +242,6 @@ def clean_numeric_columns(frame):
 
 st.sidebar.title("Real Estate Analytics")
 st.sidebar.caption("Management Analytics Platform")
-
-if st.sidebar.button("🔄 Refresh data now", width="stretch"):
-    st.rerun()
 
 page = st.sidebar.radio(
     "Navigate",
