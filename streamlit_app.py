@@ -42,156 +42,115 @@ st.set_page_config(
 st_autorefresh(interval=60_000, key="real_estate_auto_refresh")
 
 # ============================================================
-# PROFESSIONAL DASHBOARD STYLING
+# PROFESSIONAL SINGLE-SCREEN BI DASHBOARD STYLING
 # ============================================================
-
+# The goal is to keep each dashboard page inside a normal laptop
+# viewport without browser/page scrolling. Filters are provided in
+# a top popover so users do not need to scroll down a sidebar.
 st.markdown(
     """
     <style>
-    .main {
-        background-color: #f7f8fa;
+    /* ---------- Main canvas ---------- */
+    .stApp {
+        background: #f5f7fa;
     }
 
-    [data-testid="stMetric"] {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 16px 18px;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-
-    [data-testid="stMetricLabel"] {
-        font-size: 14px;
-        color: #6b7280;
-    }
-
-    [data-testid="stMetricValue"] {
-        font-size: 22px;
-        font-weight: 700;
-        line-height: 1.15;
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-        word-break: keep-all;
-    }
-
-    [data-testid="stMetric"] {
-        min-width: 0;
-    }
-
-    [data-testid="stMetricLabel"] {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .dashboard-subtitle {
-        color: #6b7280;
-        font-size: 15px;
-        margin-top: -12px;
-        margin-bottom: 20px;
-    }
-
-    .section-title {
-        font-size: 20px;
-        font-weight: 700;
-        margin-top: 8px;
-        margin-bottom: 8px;
-    }
-
-    .status-card {
-        background: white;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        padding: 14px 16px;
-        margin-bottom: 10px;
-    }
-
-    footer {
-        visibility: hidden;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-st.markdown(
-    """
-    <style>
-    /* Compact BI-style dashboard */
     .main .block-container {
         max-width: 100%;
-        padding-top: 0.55rem;
-        padding-bottom: 0.35rem;
+        padding-top: 0.35rem;
+        padding-bottom: 0.15rem;
         padding-left: 1.0rem;
         padding-right: 1.0rem;
     }
 
     [data-testid="stHeader"] {
-        height: 2.2rem;
+        height: 2rem;
     }
 
+    /* ---------- Compact top navigation ---------- */
+    div[data-testid="stRadio"] > div {
+        gap: 0.15rem;
+    }
+
+    div[data-testid="stRadio"] label {
+        padding: 0.15rem 0.65rem;
+        font-size: 0.82rem;
+    }
+
+    /* ---------- KPI cards ---------- */
     [data-testid="stMetric"] {
         background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 8px 10px;
-        min-height: 64px;
+        border: 1px solid #e2e6eb;
+        border-radius: 9px;
+        padding: 7px 10px;
+        min-height: 58px;
         box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
     [data-testid="stMetricLabel"] {
         font-size: 11px;
-        color: #6b7280;
-        line-height: 1.1;
+        color: #667085;
+        line-height: 1.05;
     }
 
     [data-testid="stMetricValue"] {
         font-size: 20px;
-        font-weight: 700;
+        font-weight: 750;
         line-height: 1.05;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
     }
 
+    /* ---------- Titles ---------- */
     .dashboard-title {
-        font-size: 24px;
-        font-weight: 750;
+        font-size: 23px;
+        font-weight: 800;
         line-height: 1.05;
-        margin: 0 0 2px 0;
+        margin: 0 0 1px 0;
     }
 
     .dashboard-subtitle {
-        color: #6b7280;
+        color: #667085;
         font-size: 11px;
+        line-height: 1.15;
         margin: 0 0 7px 0;
     }
 
     .section-title {
-        font-size: 14px;
-        font-weight: 700;
+        font-size: 15px;
+        font-weight: 750;
+        line-height: 1.0;
         margin: 2px 0 2px 0;
     }
 
-    div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stHorizontalBlock"]) {
-        gap: 0.45rem;
+    /* ---------- Reduce Streamlit vertical gaps ---------- */
+    div[data-testid="stVerticalBlock"] {
+        gap: 0.20rem;
     }
 
     div[data-testid="stHorizontalBlock"] {
         gap: 0.55rem;
     }
 
-    hr {
-        margin: 5px 0 !important;
+    /* ---------- Popover filter button ---------- */
+    button[kind="secondary"] {
+        min-height: 32px;
     }
 
-    [data-testid="stExpander"] {
-        border-radius: 7px;
-    }
-
+    /* Hide Streamlit footer */
     footer {
         visibility: hidden;
+    }
+
+    /* Hide the sidebar toggle area visually; navigation is on top. */
+    [data-testid="stSidebar"] {
+        display: none;
+    }
+
+    /* Keep charts compact and aligned. */
+    .vega-embed {
+        width: 100% !important;
     }
     </style>
     """,
@@ -208,13 +167,7 @@ st.markdown(
 # session cannot keep using an expired Snowflake authentication token.
 conn = st.connection("snowflake", ttl=300)
 
-# Manual refresh: reset the Snowflake connection and immediately
-# rerun the dashboard. This is only a backup; automatic refresh
-# below already reruns the app every 60 seconds.
-if st.sidebar.button("🔄 Refresh data now", width="stretch"):
-    conn.reset()
-    st.rerun()
-
+# Manual refresh is available in the top-right control.
 # ============================================================
 # LOAD SEMANTIC DATA
 # ============================================================
@@ -328,27 +281,44 @@ def clean_numeric_columns(frame):
 
 
 # ============================================================
-# SIDEBAR NAVIGATION + FILTERS
+# TOP NAVIGATION + FILTER POPOVER
 # ============================================================
-st.sidebar.title("Real Estate Analytics")
-st.sidebar.caption("Management Analytics Platform")
+# Navigation is horizontal so the user never needs to open or scroll
+# a sidebar just to switch between dashboard pages.
+nav_col, refresh_col, filter_col, status_col = st.columns([5.8, 1.05, 1.25, 1.55])
 
-page = st.sidebar.radio(
-    "Navigate",
-    [
-        "Executive Summary",
-        "City Insights",
-        "Developer Performance",
-        "Property Explorer",
-    ],
-)
+with nav_col:
+    page = st.radio(
+        "Navigate",
+        [
+            "Executive Summary",
+            "City Insights",
+            "Developer Performance",
+            "Property Explorer",
+        ],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
 
-st.sidebar.divider()
-st.sidebar.caption(f"Snowflake rows loaded: {len(df):,}")
+with refresh_col:
+    if st.button("↻ Refresh", use_container_width=True):
+        conn.reset()
+        st.rerun()
 
-# Filters stay in the sidebar so the dashboard itself remains a single-screen
-# BI-style canvas. The sidebar starts collapsed for a clean presentation view.
-with st.sidebar.expander("Dashboard Filters", expanded=False):
+with filter_col:
+    filter_popover = st.popover("🔎 Filters", use_container_width=True)
+
+with status_col:
+    st.markdown(
+        f'<div style="text-align:right;color:#667085;font-size:11px;padding-top:8px;">'
+        f'Snowflake rows: <b>{len(df):,}</b></div>',
+        unsafe_allow_html=True,
+    )
+
+with filter_popover:
+    st.markdown("**Dashboard Filters**")
+    st.caption("Choose values below. All values are selected by default.")
+
     min_date = df["TXN_DATE"].min()
     max_date = df["TXN_DATE"].max()
 
@@ -361,35 +331,56 @@ with st.sidebar.expander("Dashboard Filters", expanded=False):
         key=date_filter_key,
     )
 
-    cities = sorted(df["CITY_NAME"].dropna().unique().tolist())
-    selected_cities = st.multiselect("City", cities, default=cities)
+    f1, f2, f3 = st.columns(3)
 
-    regions = sorted(df["REGION"].dropna().unique().tolist())
-    selected_regions = st.multiselect("Region", regions, default=regions)
+    with f1:
+        cities = sorted(df["CITY_NAME"].dropna().unique().tolist())
+        selected_cities = st.multiselect("City", cities, default=cities)
 
-    city_classes = sorted(df["CITY_CLASS"].dropna().unique().tolist())
-    selected_city_classes = st.multiselect("City Class", city_classes, default=city_classes)
+        developers = sorted(df["DEVELOPER_NAME"].dropna().unique().tolist())
+        selected_developers = st.multiselect(
+            "Developer", developers, default=developers
+        )
 
-    developers = sorted(df["DEVELOPER_NAME"].dropna().unique().tolist())
-    selected_developers = st.multiselect("Developer", developers, default=developers)
+        property_types = sorted(df["PROPERTY_TYPE"].dropna().unique().tolist())
+        selected_property_types = st.multiselect(
+            "Property Type", property_types, default=property_types
+        )
 
-    segments = sorted(df["SEGMENT"].dropna().unique().tolist())
-    selected_segments = st.multiselect("Segment", segments, default=segments)
+    with f2:
+        regions = sorted(df["REGION"].dropna().unique().tolist())
+        selected_regions = st.multiselect("Region", regions, default=regions)
 
-    property_types = sorted(df["PROPERTY_TYPE"].dropna().unique().tolist())
-    selected_property_types = st.multiselect("Property Type", property_types, default=property_types)
+        segments = sorted(df["SEGMENT"].dropna().unique().tolist())
+        selected_segments = st.multiselect(
+            "Segment", segments, default=segments
+        )
 
-    project_statuses = sorted(df["PROJECT_STATUS"].dropna().unique().tolist())
-    selected_project_statuses = st.multiselect("Project Status", project_statuses, default=project_statuses)
+        project_statuses = sorted(df["PROJECT_STATUS"].dropna().unique().tolist())
+        selected_project_statuses = st.multiselect(
+            "Project Status", project_statuses, default=project_statuses
+        )
 
-    sales_channels = sorted(df["SALES_CHANNEL"].dropna().unique().tolist())
-    selected_sales_channels = st.multiselect("Sales Channel", sales_channels, default=sales_channels)
+    with f3:
+        city_classes = sorted(df["CITY_CLASS"].dropna().unique().tolist())
+        selected_city_classes = st.multiselect(
+            "City Class", city_classes, default=city_classes
+        )
 
-    txn_statuses = sorted(df["TXN_STATUS"].dropna().unique().tolist())
-    selected_txn_statuses = st.multiselect("Transaction Status", txn_statuses, default=txn_statuses)
+        sales_channels = sorted(df["SALES_CHANNEL"].dropna().unique().tolist())
+        selected_sales_channels = st.multiselect(
+            "Sales Channel", sales_channels, default=sales_channels
+        )
+
+        txn_statuses = sorted(df["TXN_STATUS"].dropna().unique().tolist())
+        selected_txn_statuses = st.multiselect(
+            "Transaction Status", txn_statuses, default=txn_statuses
+        )
 
 # ============================================================
 # APPLY FILTERS
+# ============================================================
+
 # ============================================================
 filtered_df = df.copy()
 
@@ -437,16 +428,16 @@ cancellation_rate = (
 # ============================================================
 # COMPACT CHART HELPERS
 # ============================================================
-def compact_chart(chart, height=165):
+def compact_chart(chart, height=128):
     return (
         chart
         .properties(height=height)
         .configure_view(strokeWidth=0)
         .configure_axis(
-            labelFontSize=9,
-            titleFontSize=9,
-            labelLimit=95,
-            titlePadding=4,
+            labelFontSize=8,
+            titleFontSize=8,
+            labelLimit=85,
+            titlePadding=3,
         )
         .configure_legend(labelFontSize=9, titleFontSize=9)
     )
@@ -887,6 +878,9 @@ elif page == "Property Explorer":
 # ============================================================
 # FOOTER
 # ============================================================
-st.sidebar.divider()
-st.sidebar.caption("Data source: SEMANTIC.VW_TRANSACTION_ANALYTICS")
-st.sidebar.caption(f"Source rows available: {len(df):,}")
+st.markdown(
+    '<div style="text-align:right;color:#98a2b3;font-size:9px;margin-top:1px;">'
+    'Source: SEMANTIC.VW_TRANSACTION_ANALYTICS'
+    '</div>',
+    unsafe_allow_html=True,
+)
