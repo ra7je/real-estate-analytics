@@ -55,7 +55,12 @@ st.markdown(
 
     .main .block-container {
         max-width: 1480px;
-        padding: 0.25rem 0.9rem 0.15rem 0.9rem;
+        padding: 0.10rem 0.85rem 0.10rem 0.85rem;
+        margin-top: 0 !important;
+    }
+
+    [data-testid="stAppViewContainer"] .main {
+        padding-top: 0 !important;
     }
 
     [data-testid="stHeader"] {
@@ -137,9 +142,10 @@ st.markdown(
     .section-title {
         font-size: 13px;
         font-weight: 700;
-        line-height: 1.05;
+        line-height: 1.15;
         color: #303746;
-        margin: 0 0 2px 0;
+        margin: 5px 0 1px 0;
+        min-height: 15px;
     }
 
     /* Every chart gets its own title row and its own vertical box. */
@@ -196,88 +202,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-st.markdown(
-    """
-    <style>
-    /* Compact BI-style dashboard */
-    .main .block-container {
-        max-width: 100%;
-        padding-top: 0.55rem;
-        padding-bottom: 0.35rem;
-        padding-left: 1.0rem;
-        padding-right: 1.0rem;
-    }
 
-    [data-testid="stHeader"] {
-        height: 2.2rem;
-    }
-
-    [data-testid="stMetric"] {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        padding: 8px 10px;
-        min-height: 64px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-    }
-
-    [data-testid="stMetricLabel"] {
-        font-size: 11px;
-        color: #6b7280;
-        line-height: 1.1;
-    }
-
-    [data-testid="stMetricValue"] {
-        font-size: 20px;
-        font-weight: 700;
-        line-height: 1.05;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .dashboard-title {
-        font-size: 24px;
-        font-weight: 750;
-        line-height: 1.05;
-        margin: 0 0 2px 0;
-    }
-
-    .dashboard-subtitle {
-        color: #6b7280;
-        font-size: 11px;
-        margin: 0 0 7px 0;
-    }
-
-    .section-title {
-        font-size: 14px;
-        font-weight: 700;
-        margin: 2px 0 2px 0;
-    }
-
-    div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stHorizontalBlock"]) {
-        gap: 0.45rem;
-    }
-
-    div[data-testid="stHorizontalBlock"] {
-        gap: 0.55rem;
-    }
-
-    hr {
-        margin: 5px 0 !important;
-    }
-
-    [data-testid="stExpander"] {
-        border-radius: 7px;
-    }
-
-    footer {
-        visibility: hidden;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 # ============================================================
 # SNOWFLAKE CONNECTION
@@ -420,8 +345,8 @@ with head_left:
 
 with head_right:
     st.markdown(
-        f'<div style="text-align:right;font-size:11px;color:#7b8494;padding-top:8px;">'
-        f'Snowflake rows: {len(df):,}</div>',
+        '<div style="text-align:right;font-size:11px;color:#7b8494;padding-top:8px;">'
+        'Live Analytics Dashboard</div>',
         unsafe_allow_html=True,
     )
 
@@ -587,7 +512,7 @@ cancellation_rate = (
 # ============================================================
 # COMPACT CHART HELPERS
 # ============================================================
-def compact_chart(chart, height=150):
+def compact_chart(chart, height=160):
     return (
         chart
         .properties(height=height)
@@ -601,9 +526,14 @@ def compact_chart(chart, height=150):
         .configure_legend(labelFontSize=9, titleFontSize=9)
     )
 
-def chart_card(title, chart):
-    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
-    st.altair_chart(compact_chart(chart), width="stretch")
+def chart_card(title, chart, height=160):
+    # Each chart gets a real title row followed by a controlled chart area.
+    # This prevents titles from colliding with the chart canvas.
+    st.markdown(
+        f'<div class="section-title">{title}</div>',
+        unsafe_allow_html=True,
+    )
+    st.altair_chart(compact_chart(chart, height=height), width="stretch")
 
 def empty_message():
     st.info("No data available for the selected filters.")
@@ -613,8 +543,8 @@ def empty_message():
 # ============================================================
 if page == "Executive Summary":
 
-    st.markdown('<div class="dashboard-title">Executive Summary</div>', unsafe_allow_html=True)
     st.markdown(
+        '<div class="dashboard-title">Executive Summary</div>'
         '<div class="dashboard-subtitle">Executive performance overview across cities, developers and property segments</div>',
         unsafe_allow_html=True,
     )
@@ -744,8 +674,8 @@ if page == "Executive Summary":
 # ============================================================
 elif page == "City Insights":
 
-    st.markdown('<div class="dashboard-title">City Insights</div>', unsafe_allow_html=True)
     st.markdown(
+        '<div class="dashboard-title">City Insights</div>'
         '<div class="dashboard-subtitle">Compare sales activity across cities, regions and city classes</div>',
         unsafe_allow_html=True,
     )
@@ -837,8 +767,8 @@ elif page == "City Insights":
 # ============================================================
 elif page == "Developer Performance":
 
-    st.markdown('<div class="dashboard-title">Developer Performance</div>', unsafe_allow_html=True)
     st.markdown(
+        '<div class="dashboard-title">Developer Performance</div>'
         '<div class="dashboard-subtitle">Measure developer sales contribution and transaction volume</div>',
         unsafe_allow_html=True,
     )
@@ -925,8 +855,8 @@ elif page == "Developer Performance":
 # ============================================================
 elif page == "Property Explorer":
 
-    st.markdown('<div class="dashboard-title">Property Explorer</div>', unsafe_allow_html=True)
     st.markdown(
+        '<div class="dashboard-title">Property Explorer</div>'
         '<div class="dashboard-subtitle">Explore property demand across type, segment, BHK and project status</div>',
         unsafe_allow_html=True,
     )
