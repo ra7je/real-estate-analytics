@@ -52,11 +52,55 @@ st.markdown(
         background-color: #f7f8fa;
     }
 
+    /* Compact dashboard: keep each selected page close to one viewport. */
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+        max-width: 100%;
+    }
+
+    [data-testid="stVerticalBlock"] {
+        gap: 0.45rem;
+    }
+
+    [data-testid="stHorizontalBlock"] {
+        gap: 0.65rem;
+    }
+
+    [data-testid="stSidebar"] .block-container {
+        padding-top: 1rem;
+        padding-bottom: 0.5rem;
+    }
+
+    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
+        gap: 0.25rem;
+    }
+
+    h1 {
+        margin-top: 0 !important;
+        margin-bottom: 0.15rem !important;
+        font-size: 2rem !important;
+    }
+
+    .dashboard-subtitle {
+        margin-bottom: 0.4rem !important;
+    }
+
+    hr {
+        margin: 0.35rem 0 !important;
+    }
+
+    .section-title {
+        margin-top: 0.1rem !important;
+        margin-bottom: 0.15rem !important;
+        font-size: 17px !important;
+    }
+
     [data-testid="stMetric"] {
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
-        padding: 16px 18px;
+        padding: 10px 12px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
@@ -284,67 +328,67 @@ date_range = st.sidebar.date_input(
     key=date_filter_key,
 )
 
-# Missing values are represented explicitly so the default "all" selection
-# does not silently remove rows containing NULL dimension attributes.
-MISSING_LABEL = "(Missing)"
+cities = sorted(df["CITY_NAME"].dropna().unique().tolist())
+selected_cities = st.sidebar.multiselect(
+    "City",
+    cities,
+    default=cities,
+)
 
-def filter_options(column):
-    values = sorted(df[column].dropna().unique().tolist())
-    if df[column].isna().any():
-        values.append(MISSING_LABEL)
-    return values
+regions = sorted(df["REGION"].dropna().unique().tolist())
+selected_regions = st.sidebar.multiselect(
+    "Region",
+    regions,
+    default=regions,
+)
 
-def apply_multiselect_filter(frame, column, selected_values):
-    if not selected_values:
-        return frame.iloc[0:0]
-    include_missing = MISSING_LABEL in selected_values
-    normal_values = [v for v in selected_values if v != MISSING_LABEL]
-
-    mask = frame[column].isin(normal_values)
-    if include_missing:
-        mask = mask | frame[column].isna()
-
-    return frame[mask]
-
-cities = filter_options("CITY_NAME")
-selected_cities = st.sidebar.multiselect("City", cities, default=cities)
-
-regions = filter_options("REGION")
-selected_regions = st.sidebar.multiselect("Region", regions, default=regions)
-
-city_classes = filter_options("CITY_CLASS")
+city_classes = sorted(df["CITY_CLASS"].dropna().unique().tolist())
 selected_city_classes = st.sidebar.multiselect(
-    "City Class", city_classes, default=city_classes
+    "City Class",
+    city_classes,
+    default=city_classes,
 )
 
-developers = filter_options("DEVELOPER_NAME")
+developers = sorted(df["DEVELOPER_NAME"].dropna().unique().tolist())
 selected_developers = st.sidebar.multiselect(
-    "Developer", developers, default=developers
+    "Developer",
+    developers,
+    default=developers,
 )
 
-segments = filter_options("SEGMENT")
+segments = sorted(df["SEGMENT"].dropna().unique().tolist())
 selected_segments = st.sidebar.multiselect(
-    "Segment", segments, default=segments
+    "Segment",
+    segments,
+    default=segments,
 )
 
-property_types = filter_options("PROPERTY_TYPE")
+property_types = sorted(df["PROPERTY_TYPE"].dropna().unique().tolist())
 selected_property_types = st.sidebar.multiselect(
-    "Property Type", property_types, default=property_types
+    "Property Type",
+    property_types,
+    default=property_types,
 )
 
-project_statuses = filter_options("PROJECT_STATUS")
+project_statuses = sorted(df["PROJECT_STATUS"].dropna().unique().tolist())
 selected_project_statuses = st.sidebar.multiselect(
-    "Project Status", project_statuses, default=project_statuses
+    "Project Status",
+    project_statuses,
+    default=project_statuses,
 )
 
-sales_channels = filter_options("SALES_CHANNEL")
+sales_channels = sorted(df["SALES_CHANNEL"].dropna().unique().tolist())
 selected_sales_channels = st.sidebar.multiselect(
-    "Sales Channel", sales_channels, default=sales_channels
+    "Sales Channel",
+    sales_channels,
+    default=sales_channels,
 )
 
-txn_statuses = filter_options("TXN_STATUS")
+txn_statuses = sorted(df["TXN_STATUS"].dropna().unique().tolist())
 selected_txn_statuses = st.sidebar.multiselect(
-    "Transaction Status", txn_statuses, default=txn_statuses
+    "Transaction Status",
+    txn_statuses,
+    default=txn_statuses,
 )
 
 # ============================================================
@@ -359,33 +403,50 @@ if len(date_range) == 2:
         & (filtered_df["TXN_DATE"] <= date_range[1])
     ]
 
-filtered_df = apply_multiselect_filter(
-    filtered_df, "CITY_NAME", selected_cities
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "REGION", selected_regions
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "CITY_CLASS", selected_city_classes
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "DEVELOPER_NAME", selected_developers
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "SEGMENT", selected_segments
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "PROPERTY_TYPE", selected_property_types
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "PROJECT_STATUS", selected_project_statuses
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "SALES_CHANNEL", selected_sales_channels
-)
-filtered_df = apply_multiselect_filter(
-    filtered_df, "TXN_STATUS", selected_txn_statuses
-)
+if selected_cities:
+    filtered_df = filtered_df[
+        filtered_df["CITY_NAME"].isin(selected_cities)
+    ]
+
+if selected_regions:
+    filtered_df = filtered_df[
+        filtered_df["REGION"].isin(selected_regions)
+    ]
+
+if selected_city_classes:
+    filtered_df = filtered_df[
+        filtered_df["CITY_CLASS"].isin(selected_city_classes)
+    ]
+
+if selected_developers:
+    filtered_df = filtered_df[
+        filtered_df["DEVELOPER_NAME"].isin(selected_developers)
+    ]
+
+if selected_segments:
+    filtered_df = filtered_df[
+        filtered_df["SEGMENT"].isin(selected_segments)
+    ]
+
+if selected_property_types:
+    filtered_df = filtered_df[
+        filtered_df["PROPERTY_TYPE"].isin(selected_property_types)
+    ]
+
+if selected_project_statuses:
+    filtered_df = filtered_df[
+        filtered_df["PROJECT_STATUS"].isin(selected_project_statuses)
+    ]
+
+if selected_sales_channels:
+    filtered_df = filtered_df[
+        filtered_df["SALES_CHANNEL"].isin(selected_sales_channels)
+    ]
+
+if selected_txn_statuses:
+    filtered_df = filtered_df[
+        filtered_df["TXN_STATUS"].isin(selected_txn_statuses)
+    ]
 
 # ============================================================
 # COMMON KPI CALCULATIONS
@@ -452,6 +513,7 @@ if page == "Executive Summary":
     st.caption(
         f"Showing {len(filtered_df):,} transaction rows after applying the selected filters."
     )
+    st.caption("Compact view: charts are sized to keep the main dashboard visible in one screen.")
 
     st.divider()
 
@@ -564,7 +626,7 @@ if page == "Executive Summary":
 
         trend_chart = (
             alt.layer(area, line, points, tooltip_layer)
-            .properties(height=360)
+            .properties(height=220)
         )
 
         st.altair_chart(trend_chart, width="stretch")
@@ -614,7 +676,7 @@ if page == "Executive Summary":
                         ),
                     ],
                 )
-                .properties(height=330)
+                .properties(height=205)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -646,7 +708,7 @@ if page == "Executive Summary":
                         ),
                     ],
                 )
-                .properties(height=330)
+                .properties(height=205)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -679,7 +741,7 @@ if page == "Executive Summary":
                     alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
                 ],
             )
-            .properties(height=250)
+            .properties(height=180)
         )
         st.altair_chart(status_chart, width="stretch")
 
@@ -752,11 +814,13 @@ elif page == "City Insights":
 
         display_city = clean_numeric_columns(display_city)
 
-        st.dataframe(
-            display_city,
-            width="stretch",
-            hide_index=True,
-        )
+        # Keep the detailed table available without consuming the dashboard viewport.
+        with st.expander("View City Details", expanded=False):
+            st.dataframe(
+                display_city,
+                width="stretch",
+                hide_index=True,
+            )
 
         left, right = st.columns(2)
 
@@ -785,7 +849,7 @@ elif page == "City Insights":
                         ),
                     ],
                 )
-                .properties(height=350)
+                .properties(height=215)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -820,7 +884,7 @@ elif page == "City Insights":
                         ),
                     ],
                 )
-                .properties(height=350)
+                .properties(height=215)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -858,7 +922,7 @@ elif page == "City Insights":
                     ),
                 ],
             )
-            .properties(height=360)
+            .properties(height=220)
         )
         st.altair_chart(chart, width="stretch")
 
@@ -927,11 +991,13 @@ elif page == "Developer Performance":
 
         display_dev = clean_numeric_columns(display_dev)
 
-        st.dataframe(
-            display_dev,
-            width="stretch",
-            hide_index=True,
-        )
+        # Keep the detailed developer table available without pushing charts below the fold.
+        with st.expander("View Developer Details", expanded=False):
+            st.dataframe(
+                display_dev,
+                width="stretch",
+                hide_index=True,
+            )
 
         left, right = st.columns(2)
 
@@ -967,7 +1033,7 @@ elif page == "Developer Performance":
                         ),
                     ],
                 )
-                .properties(height=350)
+                .properties(height=215)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -1004,7 +1070,7 @@ elif page == "Developer Performance":
                         ),
                     ],
                 )
-                .properties(height=350)
+                .properties(height=215)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -1022,21 +1088,26 @@ elif page == "Developer Performance":
             .sort_values("SALES_VALUE", ascending=False)
         )
 
-        status_display = status_mix.rename(
-            columns={
-                "PROJECT_STATUS": "Project Status",
-                "TRANSACTIONS": "Transactions",
-                "SALES_VALUE": "Sales Value",
-            }
+        # Use a compact chart instead of a full table so the complete page fits on screen.
+        status_chart = (
+            alt.Chart(status_mix)
+            .mark_bar()
+            .encode(
+                x=alt.X("TRANSACTIONS:Q", title="Transactions"),
+                y=alt.Y("PROJECT_STATUS:N", sort="-x", title=None),
+                tooltip=[
+                    alt.Tooltip("PROJECT_STATUS:N", title="Project Status"),
+                    alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
+                    alt.Tooltip(
+                        "SALES_VALUE:Q",
+                        title="Sales Value",
+                        format=",.2f",
+                    ),
+                ],
+            )
+            .properties(height=180)
         )
-
-        status_display = clean_numeric_columns(status_display)
-
-        st.dataframe(
-            status_display,
-            width="stretch",
-            hide_index=True,
-        )
+        st.altair_chart(status_chart, width="stretch")
 
 # ============================================================
 # PAGE 4 - PROPERTY EXPLORER
@@ -1117,11 +1188,13 @@ elif page == "Property Explorer":
 
         property_display = clean_numeric_columns(property_display)
 
-        st.dataframe(
-            property_display,
-            width="stretch",
-            hide_index=True,
-        )
+        # Keep detailed property records available on demand without adding page height.
+        with st.expander("View Property Details", expanded=False):
+            st.dataframe(
+                property_display,
+                width="stretch",
+                hide_index=True,
+            )
 
         left, right = st.columns(2)
 
@@ -1163,7 +1236,7 @@ elif page == "Property Explorer":
                         ),
                     ],
                 )
-                .properties(height=320)
+                .properties(height=205)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -1194,7 +1267,7 @@ elif page == "Property Explorer":
                         ),
                     ],
                 )
-                .properties(height=320)
+                .properties(height=205)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -1238,7 +1311,7 @@ elif page == "Property Explorer":
                         ),
                     ],
                 )
-                .properties(height=320)
+                .properties(height=205)
             )
             st.altair_chart(chart, width="stretch")
 
@@ -1283,7 +1356,7 @@ elif page == "Property Explorer":
                         ),
                     ],
                 )
-                .properties(height=320)
+                .properties(height=205)
             )
             st.altair_chart(chart, width="stretch")
 
