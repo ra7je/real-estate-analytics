@@ -34,7 +34,7 @@ st.set_page_config(
     page_title="Real Estate Analytics",
     page_icon="📊",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # Re-run the full dashboard every 60 seconds so newly loaded
@@ -52,55 +52,11 @@ st.markdown(
         background-color: #f7f8fa;
     }
 
-    /* Compact dashboard: keep each selected page close to one viewport. */
-    .block-container {
-        padding-top: 1rem;
-        padding-bottom: 0.5rem;
-        max-width: 100%;
-    }
-
-    [data-testid="stVerticalBlock"] {
-        gap: 0.45rem;
-    }
-
-    [data-testid="stHorizontalBlock"] {
-        gap: 0.65rem;
-    }
-
-    [data-testid="stSidebar"] .block-container {
-        padding-top: 1rem;
-        padding-bottom: 0.5rem;
-    }
-
-    [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {
-        gap: 0.25rem;
-    }
-
-    h1 {
-        margin-top: 0 !important;
-        margin-bottom: 0.15rem !important;
-        font-size: 2rem !important;
-    }
-
-    .dashboard-subtitle {
-        margin-bottom: 0.4rem !important;
-    }
-
-    hr {
-        margin: 0.35rem 0 !important;
-    }
-
-    .section-title {
-        margin-top: 0.1rem !important;
-        margin-bottom: 0.15rem !important;
-        font-size: 17px !important;
-    }
-
     [data-testid="stMetric"] {
         background: white;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
-        padding: 10px 12px;
+        padding: 16px 18px;
         box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
 
@@ -149,6 +105,89 @@ st.markdown(
         border-radius: 12px;
         padding: 14px 16px;
         margin-bottom: 10px;
+    }
+
+    footer {
+        visibility: hidden;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <style>
+    /* Compact BI-style dashboard */
+    .main .block-container {
+        max-width: 100%;
+        padding-top: 0.55rem;
+        padding-bottom: 0.35rem;
+        padding-left: 1.0rem;
+        padding-right: 1.0rem;
+    }
+
+    [data-testid="stHeader"] {
+        height: 2.2rem;
+    }
+
+    [data-testid="stMetric"] {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        padding: 8px 10px;
+        min-height: 64px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 11px;
+        color: #6b7280;
+        line-height: 1.1;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 20px;
+        font-weight: 700;
+        line-height: 1.05;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .dashboard-title {
+        font-size: 24px;
+        font-weight: 750;
+        line-height: 1.05;
+        margin: 0 0 2px 0;
+    }
+
+    .dashboard-subtitle {
+        color: #6b7280;
+        font-size: 11px;
+        margin: 0 0 7px 0;
+    }
+
+    .section-title {
+        font-size: 14px;
+        font-weight: 700;
+        margin: 2px 0 2px 0;
+    }
+
+    div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stHorizontalBlock"]) {
+        gap: 0.45rem;
+    }
+
+    div[data-testid="stHorizontalBlock"] {
+        gap: 0.55rem;
+    }
+
+    hr {
+        margin: 5px 0 !important;
+    }
+
+    [data-testid="stExpander"] {
+        border-radius: 7px;
     }
 
     footer {
@@ -287,10 +326,10 @@ def clean_numeric_columns(frame):
 
     return result
 
-# ============================================================
-# SIDEBAR NAVIGATION
-# ============================================================
 
+# ============================================================
+# SIDEBAR NAVIGATION + FILTERS
+# ============================================================
 st.sidebar.title("Real Estate Analytics")
 st.sidebar.caption("Management Analytics Platform")
 
@@ -305,96 +344,53 @@ page = st.sidebar.radio(
 )
 
 st.sidebar.divider()
-st.sidebar.header("Dashboard Filters")
 st.sidebar.caption(f"Snowflake rows loaded: {len(df):,}")
 
-# ============================================================
-# SIDEBAR FILTERS
-# ============================================================
+# Filters stay in the sidebar so the dashboard itself remains a single-screen
+# BI-style canvas. The sidebar starts collapsed for a clean presentation view.
+with st.sidebar.expander("Dashboard Filters", expanded=False):
+    min_date = df["TXN_DATE"].min()
+    max_date = df["TXN_DATE"].max()
 
-min_date = df["TXN_DATE"].min()
-max_date = df["TXN_DATE"].max()
+    date_filter_key = f"date_range_{min_date}_{max_date}_{len(df)}"
+    date_range = st.date_input(
+        "Date Range",
+        value=(min_date, max_date),
+        min_value=min_date,
+        max_value=max_date,
+        key=date_filter_key,
+    )
 
-# Include the current data bounds in the widget key. This forces Streamlit
-# to create a fresh date-range widget when new transaction dates/data arrive,
-# instead of keeping an old session's date selection.
-date_filter_key = f"date_range_{min_date}_{max_date}_{len(df)}"
+    cities = sorted(df["CITY_NAME"].dropna().unique().tolist())
+    selected_cities = st.multiselect("City", cities, default=cities)
 
-date_range = st.sidebar.date_input(
-    "Date Range",
-    value=(min_date, max_date),
-    min_value=min_date,
-    max_value=max_date,
-    key=date_filter_key,
-)
+    regions = sorted(df["REGION"].dropna().unique().tolist())
+    selected_regions = st.multiselect("Region", regions, default=regions)
 
-cities = sorted(df["CITY_NAME"].dropna().unique().tolist())
-selected_cities = st.sidebar.multiselect(
-    "City",
-    cities,
-    default=cities,
-)
+    city_classes = sorted(df["CITY_CLASS"].dropna().unique().tolist())
+    selected_city_classes = st.multiselect("City Class", city_classes, default=city_classes)
 
-regions = sorted(df["REGION"].dropna().unique().tolist())
-selected_regions = st.sidebar.multiselect(
-    "Region",
-    regions,
-    default=regions,
-)
+    developers = sorted(df["DEVELOPER_NAME"].dropna().unique().tolist())
+    selected_developers = st.multiselect("Developer", developers, default=developers)
 
-city_classes = sorted(df["CITY_CLASS"].dropna().unique().tolist())
-selected_city_classes = st.sidebar.multiselect(
-    "City Class",
-    city_classes,
-    default=city_classes,
-)
+    segments = sorted(df["SEGMENT"].dropna().unique().tolist())
+    selected_segments = st.multiselect("Segment", segments, default=segments)
 
-developers = sorted(df["DEVELOPER_NAME"].dropna().unique().tolist())
-selected_developers = st.sidebar.multiselect(
-    "Developer",
-    developers,
-    default=developers,
-)
+    property_types = sorted(df["PROPERTY_TYPE"].dropna().unique().tolist())
+    selected_property_types = st.multiselect("Property Type", property_types, default=property_types)
 
-segments = sorted(df["SEGMENT"].dropna().unique().tolist())
-selected_segments = st.sidebar.multiselect(
-    "Segment",
-    segments,
-    default=segments,
-)
+    project_statuses = sorted(df["PROJECT_STATUS"].dropna().unique().tolist())
+    selected_project_statuses = st.multiselect("Project Status", project_statuses, default=project_statuses)
 
-property_types = sorted(df["PROPERTY_TYPE"].dropna().unique().tolist())
-selected_property_types = st.sidebar.multiselect(
-    "Property Type",
-    property_types,
-    default=property_types,
-)
+    sales_channels = sorted(df["SALES_CHANNEL"].dropna().unique().tolist())
+    selected_sales_channels = st.multiselect("Sales Channel", sales_channels, default=sales_channels)
 
-project_statuses = sorted(df["PROJECT_STATUS"].dropna().unique().tolist())
-selected_project_statuses = st.sidebar.multiselect(
-    "Project Status",
-    project_statuses,
-    default=project_statuses,
-)
-
-sales_channels = sorted(df["SALES_CHANNEL"].dropna().unique().tolist())
-selected_sales_channels = st.sidebar.multiselect(
-    "Sales Channel",
-    sales_channels,
-    default=sales_channels,
-)
-
-txn_statuses = sorted(df["TXN_STATUS"].dropna().unique().tolist())
-selected_txn_statuses = st.sidebar.multiselect(
-    "Transaction Status",
-    txn_statuses,
-    default=txn_statuses,
-)
+    txn_statuses = sorted(df["TXN_STATUS"].dropna().unique().tolist())
+    selected_txn_statuses = st.multiselect("Transaction Status", txn_statuses, default=txn_statuses)
 
 # ============================================================
 # APPLY FILTERS
 # ============================================================
-
 filtered_df = df.copy()
 
 if len(date_range) == 2:
@@ -404,373 +400,208 @@ if len(date_range) == 2:
     ]
 
 if selected_cities:
-    filtered_df = filtered_df[
-        filtered_df["CITY_NAME"].isin(selected_cities)
-    ]
-
+    filtered_df = filtered_df[filtered_df["CITY_NAME"].isin(selected_cities)]
 if selected_regions:
-    filtered_df = filtered_df[
-        filtered_df["REGION"].isin(selected_regions)
-    ]
-
+    filtered_df = filtered_df[filtered_df["REGION"].isin(selected_regions)]
 if selected_city_classes:
-    filtered_df = filtered_df[
-        filtered_df["CITY_CLASS"].isin(selected_city_classes)
-    ]
-
+    filtered_df = filtered_df[filtered_df["CITY_CLASS"].isin(selected_city_classes)]
 if selected_developers:
-    filtered_df = filtered_df[
-        filtered_df["DEVELOPER_NAME"].isin(selected_developers)
-    ]
-
+    filtered_df = filtered_df[filtered_df["DEVELOPER_NAME"].isin(selected_developers)]
 if selected_segments:
-    filtered_df = filtered_df[
-        filtered_df["SEGMENT"].isin(selected_segments)
-    ]
-
+    filtered_df = filtered_df[filtered_df["SEGMENT"].isin(selected_segments)]
 if selected_property_types:
-    filtered_df = filtered_df[
-        filtered_df["PROPERTY_TYPE"].isin(selected_property_types)
-    ]
-
+    filtered_df = filtered_df[filtered_df["PROPERTY_TYPE"].isin(selected_property_types)]
 if selected_project_statuses:
-    filtered_df = filtered_df[
-        filtered_df["PROJECT_STATUS"].isin(selected_project_statuses)
-    ]
-
+    filtered_df = filtered_df[filtered_df["PROJECT_STATUS"].isin(selected_project_statuses)]
 if selected_sales_channels:
-    filtered_df = filtered_df[
-        filtered_df["SALES_CHANNEL"].isin(selected_sales_channels)
-    ]
-
+    filtered_df = filtered_df[filtered_df["SALES_CHANNEL"].isin(selected_sales_channels)]
 if selected_txn_statuses:
-    filtered_df = filtered_df[
-        filtered_df["TXN_STATUS"].isin(selected_txn_statuses)
-    ]
+    filtered_df = filtered_df[filtered_df["TXN_STATUS"].isin(selected_txn_statuses)]
 
 # ============================================================
-# COMMON KPI CALCULATIONS
+# COMMON CALCULATIONS
 # ============================================================
-
 total_transactions = filtered_df["TXN_ID"].nunique()
 total_sales = filtered_df["SALE_PRICE_LAKHS"].sum()
-total_net_sales = filtered_df["NET_SALE_PRICE"].sum()
 avg_sale_price = filtered_df["SALE_PRICE_LAKHS"].mean()
 avg_discount = filtered_df["DISCOUNT_PCT"].mean()
 
 cancelled_transactions = (
-    filtered_df["TXN_STATUS"]
-    .astype(str)
-    .str.upper()
-    .eq("CANCELLED")
-    .sum()
+    filtered_df["TXN_STATUS"].astype(str).str.upper().eq("CANCELLED").sum()
 )
-
 cancellation_rate = (
     cancelled_transactions / total_transactions * 100
-    if total_transactions > 0
-    else 0
+    if total_transactions > 0 else 0
 )
 
 # ============================================================
-# PAGE 1 - EXECUTIVE SUMMARY
+# COMPACT CHART HELPERS
 # ============================================================
+def compact_chart(chart, height=165):
+    return (
+        chart
+        .properties(height=height)
+        .configure_view(strokeWidth=0)
+        .configure_axis(
+            labelFontSize=9,
+            titleFontSize=9,
+            labelLimit=95,
+            titlePadding=4,
+        )
+        .configure_legend(labelFontSize=9, titleFontSize=9)
+    )
 
+def chart_card(title, chart):
+    st.markdown(f'<div class="section-title">{title}</div>', unsafe_allow_html=True)
+    st.altair_chart(compact_chart(chart), width="stretch")
+
+def empty_message():
+    st.info("No data available for the selected filters.")
+
+# ============================================================
+# PAGE 1 — EXECUTIVE SUMMARY
+# ============================================================
 if page == "Executive Summary":
 
-    st.title("Real Estate Analytics")
+    st.markdown('<div class="dashboard-title">Real Estate Analytics</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="dashboard-subtitle">'
-        "Executive performance overview across cities, developers and property segments"
-        "</div>",
+        '<div class="dashboard-subtitle">Executive performance overview across cities, developers and property segments</div>',
         unsafe_allow_html=True,
     )
 
-    # --------------------------------------------------------
-    # KPI CARDS
-    # --------------------------------------------------------
-
-    st.markdown('<div class="section-title">Key Performance Indicators</div>',
-                unsafe_allow_html=True)
-
-    k1, k2, k3, k4, k5 = st.columns([1, 1.30, 1.05, 1, 1])
-
+    # Row 1: KPI strip — deliberately compact to match a BI dashboard.
+    k1, k2, k3, k4, k5 = st.columns(5)
     with k1:
         st.metric("Transactions", f"{total_transactions:,}")
-
     with k2:
-        st.metric("Total Sales Value", format_kpi_sales(total_sales))
-
+        st.metric("Total Sales", format_kpi_sales(total_sales))
     with k3:
         st.metric("Avg Sale Price", format_price(avg_sale_price))
-
     with k4:
         st.metric("Avg Discount", format_pct(avg_discount))
-
     with k5:
-        st.metric("Cancellation Rate", format_pct(cancellation_rate))
+        st.metric("Cancellation", format_pct(cancellation_rate))
 
-    st.caption(
-        f"Showing {len(filtered_df):,} transaction rows after applying the selected filters."
-    )
-    st.caption("Compact view: charts are sized to keep the main dashboard visible in one screen.")
+    # Row 2: sales trend + regional distribution.
+    if not filtered_df.empty:
+        trend = filtered_df.copy()
+        trend["DATE"] = pd.to_datetime(trend["TXN_DATE"], errors="coerce")
+        trend = trend.dropna(subset=["DATE"])
 
-    st.divider()
+        if not trend.empty:
+            span = (trend["DATE"].max() - trend["DATE"].min()).days
+            if span <= 31:
+                trend["PERIOD"] = trend["DATE"].dt.floor("D")
+                period_title = "Date"
+            elif span <= 180:
+                trend["PERIOD"] = trend["DATE"].dt.to_period("W").dt.start_time
+                period_title = "Week"
+            else:
+                trend["PERIOD"] = trend["DATE"].dt.to_period("M").dt.start_time
+                period_title = "Month"
 
-    # --------------------------------------------------------
-    # SALES TREND
-    # --------------------------------------------------------
-
-    # Adaptive trend grain keeps the chart executive-friendly:
-    # <=31 days: daily | 32-180 days: weekly | >180 days: monthly.
-    trend_source = filtered_df.copy()
-    trend_source["TXN_DATE_DT"] = pd.to_datetime(trend_source["TXN_DATE"])
-
-    if trend_source["TXN_DATE_DT"].notna().any():
-        date_span_days = (
-            trend_source["TXN_DATE_DT"].max() - trend_source["TXN_DATE_DT"].min()
-        ).days
-    else:
-        date_span_days = 0
-
-    if date_span_days <= 31:
-        trend_grain = "Daily"
-        trend_source["TREND_DATE"] = trend_source["TXN_DATE_DT"].dt.floor("D")
-        trend_title = "Transaction Date"
-        tooltip_title = "Date"
-        tooltip_format = "%d %b %Y"
-    elif date_span_days <= 180:
-        trend_grain = "Weekly"
-        trend_source["TREND_DATE"] = (
-            trend_source["TXN_DATE_DT"].dt.to_period("W-MON").dt.start_time
-        )
-        trend_title = "Week"
-        tooltip_title = "Week Starting"
-        tooltip_format = "%d %b %Y"
-    else:
-        trend_grain = "Monthly"
-        trend_source["TREND_DATE"] = (
-            trend_source["TXN_DATE_DT"].dt.to_period("M").dt.start_time
-        )
-        trend_title = "Month"
-        tooltip_title = "Month"
-        tooltip_format = "%b %Y"
-
-    trend = (
-        trend_source.groupby("TREND_DATE", as_index=False)
-        .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
-        .sort_values("TREND_DATE")
-    )
-
-    st.markdown(
-        f'<div class="section-title">Sales Performance Trend '
-        f'<span style="font-size:0.65em;font-weight:500;color:#64748b;">({trend_grain})</span></div>',
-        unsafe_allow_html=True,
-    )
-
-    if not trend.empty:
-        # Nearest-point selection makes the tooltip appear when the user
-        # moves the mouse across the chart, rather than requiring a click.
-        hover = alt.selection_point(
-            name="hover",
-            nearest=True,
-            on="pointerover",
-            fields=["TREND_DATE"],
-            empty=False,
-        )
-
-        base = alt.Chart(trend).encode(
-            x=alt.X(
-                "TREND_DATE:T",
-                title=trend_title,
-                axis=alt.Axis(
-                    format=(
-                        "%b %Y"
-                        if trend_grain == "Monthly"
-                        else ("%d %b" if trend_grain == "Daily" else "%d %b")
-                    )
-                ),
-            ),
-            y=alt.Y(
-                "SALES_VALUE:Q",
-                title="Sales Value (₹ Lakhs)",
-                axis=alt.Axis(format=",.0f"),
-            ),
-        )
-
-        # Subtle area fill gives the trend more visual weight.
-        area = base.mark_area(opacity=0.12)
-
-        # Clean line with points so the trend remains easy to follow.
-        line = base.mark_line(strokeWidth=3)
-
-        points = base.mark_circle(size=55).encode(
-            opacity=alt.condition(hover, alt.value(1), alt.value(0))
-        ).add_params(hover)
-
-        # Persistent tooltip follows the nearest monthly/weekly/daily point.
-        tooltip_layer = base.mark_circle(size=180, opacity=0).encode(
-            tooltip=[
-                alt.Tooltip(
-                    "TREND_DATE:T",
-                    title=tooltip_title,
-                    format=tooltip_format,
-                ),
-                alt.Tooltip(
-                    "SALES_VALUE:Q",
-                    title="Sales Value",
-                    format=",.2f",
-                ),
-            ]
-        ).transform_filter(hover)
-
-        trend_chart = (
-            alt.layer(area, line, points, tooltip_layer)
-            .properties(height=220)
-        )
-
-        st.altair_chart(trend_chart, width="stretch")
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # TOP CITIES + SEGMENT MIX
-    # --------------------------------------------------------
-
-    left, right = st.columns(2)
-
-    with left:
-        st.markdown(
-            '<div class="section-title">Top Cities by Sales Value</div>',
-            unsafe_allow_html=True,
-        )
-
-        city_sales = (
-            filtered_df.groupby("CITY_NAME", as_index=False)
-            .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
-            .sort_values("SALES_VALUE", ascending=False)
-            .head(10)
-        )
-
-        if not city_sales.empty:
-            chart = (
-                alt.Chart(city_sales)
-                .mark_bar()
-                .encode(
-                    x=alt.X(
-                        "SALES_VALUE:Q",
-                        title="Sales Value (₹ Lakhs)",
-                        axis=alt.Axis(format=",.0f"),
-                    ),
-                    y=alt.Y(
-                        "CITY_NAME:N",
-                        sort="-x",
-                        title=None,
-                    ),
-                    tooltip=[
-                        alt.Tooltip("CITY_NAME:N", title="City"),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
-                    ],
-                )
-                .properties(height=205)
+            trend = (
+                trend.groupby("PERIOD", as_index=False)
+                .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
+                     TRANSACTIONS=("TXN_ID", "nunique"))
             )
-            st.altair_chart(chart, width="stretch")
 
-    with right:
-        st.markdown(
-            '<div class="section-title">Sales Mix by Segment</div>',
-            unsafe_allow_html=True,
+            region = (
+                filtered_df.groupby("REGION", as_index=False)
+                .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
+                .sort_values("SALES_VALUE", ascending=False)
+            )
+
+            c1, c2 = st.columns([2.05, 1])
+            with c1:
+                chart_card(
+                    "Sales Trend",
+                    alt.Chart(trend)
+                    .mark_line(point=True)
+                    .encode(
+                        x=alt.X("PERIOD:T", title=period_title, axis=alt.Axis(format="%b %Y")),
+                        y=alt.Y("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
+                        tooltip=[
+                            alt.Tooltip("PERIOD:T", title=period_title, format="%d %b %Y"),
+                            alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                            alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
+                        ],
+                    ),
+                )
+            with c2:
+                chart_card(
+                    "Sales by Region",
+                    alt.Chart(region)
+                    .mark_arc(innerRadius=38)
+                    .encode(
+                        theta=alt.Theta("SALES_VALUE:Q"),
+                        color=alt.Color("REGION:N", title="Region"),
+                        tooltip=[
+                            alt.Tooltip("REGION:N", title="Region"),
+                            alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                        ],
+                    ),
+                )
+
+        # Row 3: top cities + segment mix.
+        city = (
+            filtered_df.groupby("CITY_NAME", as_index=False)
+            .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
+                 TRANSACTIONS=("TXN_ID", "nunique"))
+            .sort_values("SALES_VALUE", ascending=False)
+            .head(8)
         )
 
-        segment_sales = (
+        segment = (
             filtered_df.groupby("SEGMENT", as_index=False)
             .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
             .sort_values("SALES_VALUE", ascending=False)
         )
 
-        if not segment_sales.empty:
-            chart = (
-                alt.Chart(segment_sales)
-                .mark_arc(innerRadius=65)
+        c3, c4 = st.columns([1.25, 1])
+        with c3:
+            chart_card(
+                "Top Cities by Sales",
+                alt.Chart(city)
+                .mark_bar()
+                .encode(
+                    x=alt.X("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
+                    y=alt.Y("CITY_NAME:N", sort="-x", title=None),
+                    tooltip=[
+                        alt.Tooltip("CITY_NAME:N", title="City"),
+                        alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                        alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
+                    ],
+                ),
+            )
+        with c4:
+            chart_card(
+                "Sales by Segment",
+                alt.Chart(segment)
+                .mark_arc(innerRadius=38)
                 .encode(
                     theta=alt.Theta("SALES_VALUE:Q"),
                     color=alt.Color("SEGMENT:N", title="Segment"),
                     tooltip=[
                         alt.Tooltip("SEGMENT:N", title="Segment"),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
+                        alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
                     ],
-                )
-                .properties(height=205)
+                ),
             )
-            st.altair_chart(chart, width="stretch")
-
-    st.divider()
-
-    # --------------------------------------------------------
-    # TRANSACTION STATUS
-    # --------------------------------------------------------
-
-    st.markdown(
-        '<div class="section-title">Transaction Status Overview</div>',
-        unsafe_allow_html=True,
-    )
-
-    status_summary = (
-        filtered_df.groupby("TXN_STATUS", as_index=False)
-        .agg(TRANSACTIONS=("TXN_ID", "nunique"))
-        .sort_values("TRANSACTIONS", ascending=False)
-    )
-
-    if not status_summary.empty:
-        status_chart = (
-            alt.Chart(status_summary)
-            .mark_bar()
-            .encode(
-                x=alt.X("TRANSACTIONS:Q", title="Transactions"),
-                y=alt.Y("TXN_STATUS:N", sort="-x", title=None),
-                tooltip=[
-                    alt.Tooltip("TXN_STATUS:N", title="Status"),
-                    alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
-                ],
-            )
-            .properties(height=180)
-        )
-        st.altair_chart(status_chart, width="stretch")
-
-    with st.expander("View Transaction Data"):
-        st.dataframe(
-            filtered_df.sort_values("TXN_DATE", ascending=False),
-            width="stretch",
-            hide_index=True,
-        )
 
 # ============================================================
-# PAGE 2 - CITY INSIGHTS
+# PAGE 2 — CITY INSIGHTS
 # ============================================================
-
 elif page == "City Insights":
 
-    st.title("🏙️ City Insights")
+    st.markdown('<div class="dashboard-title">City Insights</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="dashboard-subtitle">'
-        "Compare market performance across cities, regions and city classes"
-        "</div>",
+        '<div class="dashboard-subtitle">Compare sales activity across cities, regions and city classes</div>',
         unsafe_allow_html=True,
     )
 
-    city_performance = (
-        filtered_df.groupby(
-            ["CITY_NAME", "REGION", "CITY_CLASS"],
-            as_index=False,
-        )
+    city_perf = (
+        filtered_df.groupby(["CITY_NAME", "REGION", "CITY_CLASS"], as_index=False)
         .agg(
             TRANSACTIONS=("TXN_ID", "nunique"),
             SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
@@ -779,168 +610,90 @@ elif page == "City Insights":
         .sort_values("SALES_VALUE", ascending=False)
     )
 
-    if not city_performance.empty:
+    if city_perf.empty:
+        empty_message()
+    else:
+        top = city_perf.iloc[0]
         k1, k2, k3 = st.columns(3)
-
         with k1:
-            st.metric("Cities in View", f"{city_performance['CITY_NAME'].nunique():,}")
-
+            st.metric("Cities in View", f"{city_perf['CITY_NAME'].nunique():,}")
         with k2:
-            st.metric("Leading City", city_performance.iloc[0]["CITY_NAME"])
-
+            st.metric("Leading City", str(top["CITY_NAME"]))
         with k3:
-            st.metric(
-                "Leading City Sales",
-                format_lakhs(city_performance.iloc[0]["SALES_VALUE"]),
-            )
+            st.metric("Leading City Sales", format_lakhs(top["SALES_VALUE"]))
 
-        st.divider()
-
-        st.markdown(
-            '<div class="section-title">City Performance</div>',
-            unsafe_allow_html=True,
+        city_top = city_perf.head(8)
+        region = (
+            filtered_df.groupby("REGION", as_index=False)
+            .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
+            .sort_values("SALES_VALUE", ascending=False)
         )
 
-        display_city = city_performance.rename(
-            columns={
-                "CITY_NAME": "City",
-                "REGION": "Region",
-                "CITY_CLASS": "City Class",
-                "TRANSACTIONS": "Transactions",
-                "SALES_VALUE": "Sales Value",
-                "AVG_SALE_PRICE": "Avg Sale Price",
-            }
-        )
-
-        display_city = clean_numeric_columns(display_city)
-
-        # Keep the detailed table available without consuming the dashboard viewport.
-        with st.expander("View City Details", expanded=False):
-            st.dataframe(
-                display_city,
-                width="stretch",
-                hide_index=True,
-            )
-
-        left, right = st.columns(2)
-
-        with left:
-            st.markdown(
-                '<div class="section-title">Sales by City</div>',
-                unsafe_allow_html=True,
-            )
-
-            chart = (
-                alt.Chart(city_performance.head(10))
+        c1, c2 = st.columns([1.35, 1])
+        with c1:
+            chart_card(
+                "Sales by City",
+                alt.Chart(city_top)
                 .mark_bar()
                 .encode(
-                    x=alt.X(
-                        "SALES_VALUE:Q",
-                        title="Sales Value (₹ Lakhs)",
-                        axis=alt.Axis(format=",.0f"),
-                    ),
+                    x=alt.X("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
                     y=alt.Y("CITY_NAME:N", sort="-x", title=None),
                     tooltip=[
                         alt.Tooltip("CITY_NAME:N", title="City"),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
+                        alt.Tooltip("REGION:N", title="Region"),
+                        alt.Tooltip("CITY_CLASS:N", title="Class"),
+                        alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
                     ],
-                )
-                .properties(height=215)
+                ),
             )
-            st.altair_chart(chart, width="stretch")
-
-        with right:
-            st.markdown(
-                '<div class="section-title">Sales by Region</div>',
-                unsafe_allow_html=True,
-            )
-
-            region_sales = (
-                filtered_df.groupby("REGION", as_index=False)
-                .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
-                .sort_values("SALES_VALUE", ascending=False)
-            )
-
-            chart = (
-                alt.Chart(region_sales)
-                .mark_bar()
+        with c2:
+            chart_card(
+                "Sales by Region",
+                alt.Chart(region)
+                .mark_arc(innerRadius=38)
                 .encode(
-                    x=alt.X(
-                        "SALES_VALUE:Q",
-                        title="Sales Value (₹ Lakhs)",
-                        axis=alt.Axis(format=",.0f"),
-                    ),
-                    y=alt.Y("REGION:N", sort="-x", title=None),
+                    theta=alt.Theta("SALES_VALUE:Q"),
+                    color=alt.Color("REGION:N", title="Region"),
                     tooltip=[
                         alt.Tooltip("REGION:N", title="Region"),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
+                        alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
                     ],
-                )
-                .properties(height=215)
+                ),
             )
-            st.altair_chart(chart, width="stretch")
-
-        st.markdown(
-            '<div class="section-title">Segment Mix by City</div>',
-            unsafe_allow_html=True,
-        )
 
         segment_city = (
-            filtered_df.groupby(
-                ["CITY_NAME", "SEGMENT"],
-                as_index=False,
-            )
+            filtered_df.groupby(["CITY_NAME", "SEGMENT"], as_index=False)
             .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
         )
 
-        chart = (
+        chart_card(
+            "Segment Mix by City",
             alt.Chart(segment_city)
             .mark_bar()
             .encode(
-                x=alt.X("CITY_NAME:N", title="City"),
-                y=alt.Y(
-                    "SALES_VALUE:Q",
-                    title="Sales Value (₹ Lakhs)",
-                    axis=alt.Axis(format=",.0f"),
-                ),
+                x=alt.X("CITY_NAME:N", title=None, sort="-y"),
+                y=alt.Y("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
                 color=alt.Color("SEGMENT:N", title="Segment"),
                 tooltip=[
                     alt.Tooltip("CITY_NAME:N", title="City"),
                     alt.Tooltip("SEGMENT:N", title="Segment"),
-                    alt.Tooltip(
-                        "SALES_VALUE:Q",
-                        title="Sales Value",
-                        format=",.2f",
-                    ),
+                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
                 ],
-            )
-            .properties(height=220)
+            ),
         )
-        st.altair_chart(chart, width="stretch")
 
 # ============================================================
-# PAGE 3 - DEVELOPER PERFORMANCE
+# PAGE 3 — DEVELOPER PERFORMANCE
 # ============================================================
-
 elif page == "Developer Performance":
 
-    st.title("🏢 Developer Performance")
+    st.markdown('<div class="dashboard-title">Developer Performance</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="dashboard-subtitle">'
-        "Measure developer sales contribution, transaction volume and market focus"
-        "</div>",
+        '<div class="dashboard-subtitle">Measure developer sales contribution and transaction volume</div>',
         unsafe_allow_html=True,
     )
 
-    developer_kpi = (
+    dev = (
         filtered_df.groupby("DEVELOPER_NAME", as_index=False)
         .agg(
             TRANSACTIONS=("TXN_ID", "nunique"),
@@ -950,424 +703,190 @@ elif page == "Developer Performance":
         .sort_values("SALES_VALUE", ascending=False)
     )
 
-    if not developer_kpi.empty:
-
-        # Use a wider middle card so long developer names remain readable.
-        k1, k2, k3 = st.columns([1, 1.65, 1])
-
+    if dev.empty:
+        empty_message()
+    else:
+        top = dev.iloc[0]
+        k1, k2, k3 = st.columns(3)
         with k1:
-            st.metric(
-                "Developers in View",
-                f"{developer_kpi['DEVELOPER_NAME'].nunique():,}",
-            )
-
+            st.metric("Developers in View", f"{dev['DEVELOPER_NAME'].nunique():,}")
         with k2:
-            st.metric(
-                "Top Developer",
-                str(developer_kpi.iloc[0]["DEVELOPER_NAME"]),
-            )
-
+            st.metric("Top Developer", str(top["DEVELOPER_NAME"]))
         with k3:
-            st.metric(
-                "Top Developer Sales",
-                format_lakhs(developer_kpi.iloc[0]["SALES_VALUE"]),
-            )
+            st.metric("Top Developer Sales", format_lakhs(top["SALES_VALUE"]))
 
-        st.divider()
-
-        st.markdown(
-            '<div class="section-title">Developer Performance</div>',
-            unsafe_allow_html=True,
-        )
-
-        display_dev = developer_kpi.rename(
-            columns={
-                "DEVELOPER_NAME": "Developer",
-                "TRANSACTIONS": "Transactions",
-                "SALES_VALUE": "Sales Value",
-                "AVG_SALE_PRICE": "Avg Sale Price",
-            }
-        )
-
-        display_dev = clean_numeric_columns(display_dev)
-
-        # Keep the detailed developer table available without pushing charts below the fold.
-        with st.expander("View Developer Details", expanded=False):
-            st.dataframe(
-                display_dev,
-                width="stretch",
-                hide_index=True,
-            )
-
-        left, right = st.columns(2)
-
-        with left:
-            st.markdown(
-                '<div class="section-title">Top Developers by Sales Value</div>',
-                unsafe_allow_html=True,
-            )
-
-            chart = (
-                alt.Chart(developer_kpi.head(10))
+        c1, c2 = st.columns(2)
+        with c1:
+            chart_card(
+                "Top Developers by Sales",
+                alt.Chart(dev.head(8))
                 .mark_bar()
                 .encode(
-                    x=alt.X(
-                        "SALES_VALUE:Q",
-                        title="Sales Value (₹ Lakhs)",
-                        axis=alt.Axis(format=",.0f"),
-                    ),
-                    y=alt.Y(
-                        "DEVELOPER_NAME:N",
-                        sort="-x",
-                        title=None,
-                    ),
+                    x=alt.X("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
+                    y=alt.Y("DEVELOPER_NAME:N", sort="-x", title=None),
                     tooltip=[
-                        alt.Tooltip(
-                            "DEVELOPER_NAME:N",
-                            title="Developer",
-                        ),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
+                        alt.Tooltip("DEVELOPER_NAME:N", title="Developer"),
+                        alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
                     ],
-                )
-                .properties(height=215)
+                ),
             )
-            st.altair_chart(chart, width="stretch")
-
-        with right:
-            st.markdown(
-                '<div class="section-title">Top Developers by Transaction Volume</div>',
-                unsafe_allow_html=True,
-            )
-
-            volume_df = (
-                developer_kpi
-                .sort_values("TRANSACTIONS", ascending=False)
-                .head(10)
-            )
-
-            chart = (
-                alt.Chart(volume_df)
+        with c2:
+            volume = dev.sort_values("TRANSACTIONS", ascending=False).head(8)
+            chart_card(
+                "Top Developers by Transactions",
+                alt.Chart(volume)
                 .mark_bar()
                 .encode(
                     x=alt.X("TRANSACTIONS:Q", title="Transactions"),
-                    y=alt.Y(
-                        "DEVELOPER_NAME:N",
-                        sort="-x",
-                        title=None,
-                    ),
+                    y=alt.Y("DEVELOPER_NAME:N", sort="-x", title=None),
                     tooltip=[
-                        alt.Tooltip(
-                            "DEVELOPER_NAME:N",
-                            title="Developer",
-                        ),
-                        alt.Tooltip(
-                            "TRANSACTIONS:Q",
-                            title="Transactions",
-                        ),
+                        alt.Tooltip("DEVELOPER_NAME:N", title="Developer"),
+                        alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
                     ],
-                )
-                .properties(height=215)
+                ),
             )
-            st.altair_chart(chart, width="stretch")
 
-        st.markdown(
-            '<div class="section-title">Project Status Mix</div>',
-            unsafe_allow_html=True,
-        )
-
-        status_mix = (
+        status = (
             filtered_df.groupby("PROJECT_STATUS", as_index=False)
             .agg(
                 TRANSACTIONS=("TXN_ID", "nunique"),
                 SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
             )
-            .sort_values("SALES_VALUE", ascending=False)
+            .sort_values("TRANSACTIONS", ascending=False)
         )
 
-        # Use a compact chart instead of a full table so the complete page fits on screen.
-        status_chart = (
-            alt.Chart(status_mix)
-            .mark_bar()
+        chart_card(
+            "Project Status Mix",
+            alt.Chart(status)
+            .mark_arc(innerRadius=38)
             .encode(
-                x=alt.X("TRANSACTIONS:Q", title="Transactions"),
-                y=alt.Y("PROJECT_STATUS:N", sort="-x", title=None),
+                theta=alt.Theta("TRANSACTIONS:Q"),
+                color=alt.Color("PROJECT_STATUS:N", title="Project Status"),
                 tooltip=[
-                    alt.Tooltip("PROJECT_STATUS:N", title="Project Status"),
+                    alt.Tooltip("PROJECT_STATUS:N", title="Status"),
                     alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
-                    alt.Tooltip(
-                        "SALES_VALUE:Q",
-                        title="Sales Value",
-                        format=",.2f",
-                    ),
+                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
                 ],
-            )
-            .properties(height=180)
+            ),
         )
-        st.altair_chart(status_chart, width="stretch")
 
 # ============================================================
-# PAGE 4 - PROPERTY EXPLORER
+# PAGE 4 — PROPERTY EXPLORER
 # ============================================================
-
 elif page == "Property Explorer":
 
-    st.title("🏘️ Property Explorer")
+    st.markdown('<div class="dashboard-title">Property Explorer</div>', unsafe_allow_html=True)
     st.markdown(
-        '<div class="dashboard-subtitle">'
-        "Explore property demand and sales across type, segment, BHK and project status"
-        "</div>",
+        '<div class="dashboard-subtitle">Explore property demand across type, segment, BHK and project status</div>',
         unsafe_allow_html=True,
     )
 
-    property_summary = (
-        filtered_df.groupby(
-            [
-                "PROPERTY_TYPE",
-                "SEGMENT",
-                "BHK",
-                "PROJECT_STATUS",
-                "DEVELOPER_NAME",
-                "CITY_NAME",
-            ],
-            as_index=False,
-        )
-        .agg(
-            TRANSACTIONS=("TXN_ID", "nunique"),
-            SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
-            AVG_SALE_PRICE=("SALE_PRICE_LAKHS", "mean"),
-        )
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        st.metric("Property Types", f"{filtered_df['PROPERTY_TYPE'].nunique():,}")
+    with k2:
+        st.metric("Segments", f"{filtered_df['SEGMENT'].nunique():,}")
+    with k3:
+        st.metric("BHK Categories", f"{filtered_df['BHK'].nunique():,}")
+
+    c1, c2 = st.columns(2)
+
+    property_type = (
+        filtered_df.groupby("PROPERTY_TYPE", as_index=False)
+        .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
+             TRANSACTIONS=("TXN_ID", "nunique"))
+        .sort_values("SALES_VALUE", ascending=False)
+    )
+    segment = (
+        filtered_df.groupby("SEGMENT", as_index=False)
+        .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
         .sort_values("SALES_VALUE", ascending=False)
     )
 
-    if not property_summary.empty:
-
-        k1, k2, k3 = st.columns(3)
-
-        with k1:
-            st.metric(
-                "Property Types",
-                f"{filtered_df['PROPERTY_TYPE'].nunique():,}",
-            )
-
-        with k2:
-            st.metric(
-                "Segments",
-                f"{filtered_df['SEGMENT'].nunique():,}",
-            )
-
-        with k3:
-            st.metric(
-                "BHK Categories",
-                f"{filtered_df['BHK'].nunique():,}",
-            )
-
-        st.divider()
-
-        st.markdown(
-            '<div class="section-title">Property Performance</div>',
-            unsafe_allow_html=True,
+    with c1:
+        chart_card(
+            "Sales by Property Type",
+            alt.Chart(property_type)
+            .mark_bar()
+            .encode(
+                x=alt.X("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
+                y=alt.Y("PROPERTY_TYPE:N", sort="-x", title=None),
+                tooltip=[
+                    alt.Tooltip("PROPERTY_TYPE:N", title="Property Type"),
+                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                    alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
+                ],
+            ),
+        )
+    with c2:
+        chart_card(
+            "Sales by Segment",
+            alt.Chart(segment)
+            .mark_arc(innerRadius=38)
+            .encode(
+                theta=alt.Theta("SALES_VALUE:Q"),
+                color=alt.Color("SEGMENT:N", title="Segment"),
+                tooltip=[
+                    alt.Tooltip("SEGMENT:N", title="Segment"),
+                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                ],
+            ),
         )
 
-        property_display = property_summary.rename(
-            columns={
-                "PROPERTY_TYPE": "Property Type",
-                "SEGMENT": "Segment",
-                "BHK": "BHK",
-                "PROJECT_STATUS": "Project Status",
-                "DEVELOPER_NAME": "Developer",
-                "CITY_NAME": "City",
-                "TRANSACTIONS": "Transactions",
-                "SALES_VALUE": "Sales Value",
-                "AVG_SALE_PRICE": "Avg Sale Price",
-            }
+    c3, c4 = st.columns(2)
+
+    bhk = (
+        filtered_df.groupby("BHK", as_index=False)
+        .agg(
+            SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
+            TRANSACTIONS=("TXN_ID", "nunique"),
+        )
+        .sort_values("BHK")
+    )
+
+    status = (
+        filtered_df.groupby("PROJECT_STATUS", as_index=False)
+        .agg(
+            TRANSACTIONS=("TXN_ID", "nunique"),
+            SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
+        )
+        .sort_values("TRANSACTIONS", ascending=False)
+    )
+
+    with c3:
+        chart_card(
+            "Sales by BHK",
+            alt.Chart(bhk)
+            .mark_bar()
+            .encode(
+                x=alt.X("BHK:N", title="BHK"),
+                y=alt.Y("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
+                tooltip=[
+                    alt.Tooltip("BHK:N", title="BHK"),
+                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                    alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
+                ],
+            ),
+        )
+    with c4:
+        chart_card(
+            "Project Status Distribution",
+            alt.Chart(status)
+            .mark_arc(innerRadius=38)
+            .encode(
+                theta=alt.Theta("TRANSACTIONS:Q"),
+                color=alt.Color("PROJECT_STATUS:N", title="Status"),
+                tooltip=[
+                    alt.Tooltip("PROJECT_STATUS:N", title="Status"),
+                    alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
+                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                ],
+            ),
         )
 
-        property_display = clean_numeric_columns(property_display)
-
-        # Keep detailed property records available on demand without adding page height.
-        with st.expander("View Property Details", expanded=False):
-            st.dataframe(
-                property_display,
-                width="stretch",
-                hide_index=True,
-            )
-
-        left, right = st.columns(2)
-
-        with left:
-            st.markdown(
-                '<div class="section-title">Sales by Property Type</div>',
-                unsafe_allow_html=True,
-            )
-
-            property_type_sales = (
-                filtered_df.groupby("PROPERTY_TYPE", as_index=False)
-                .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
-                .sort_values("SALES_VALUE", ascending=False)
-            )
-
-            chart = (
-                alt.Chart(property_type_sales)
-                .mark_bar()
-                .encode(
-                    x=alt.X(
-                        "SALES_VALUE:Q",
-                        title="Sales Value (₹ Lakhs)",
-                        axis=alt.Axis(format=",.0f"),
-                    ),
-                    y=alt.Y(
-                        "PROPERTY_TYPE:N",
-                        sort="-x",
-                        title=None,
-                    ),
-                    tooltip=[
-                        alt.Tooltip(
-                            "PROPERTY_TYPE:N",
-                            title="Property Type",
-                        ),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
-                    ],
-                )
-                .properties(height=205)
-            )
-            st.altair_chart(chart, width="stretch")
-
-        with right:
-            st.markdown(
-                '<div class="section-title">Sales by Segment</div>',
-                unsafe_allow_html=True,
-            )
-
-            segment_sales = (
-                filtered_df.groupby("SEGMENT", as_index=False)
-                .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
-                .sort_values("SALES_VALUE", ascending=False)
-            )
-
-            chart = (
-                alt.Chart(segment_sales)
-                .mark_arc(innerRadius=60)
-                .encode(
-                    theta=alt.Theta("SALES_VALUE:Q"),
-                    color=alt.Color("SEGMENT:N", title="Segment"),
-                    tooltip=[
-                        alt.Tooltip("SEGMENT:N", title="Segment"),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
-                    ],
-                )
-                .properties(height=205)
-            )
-            st.altair_chart(chart, width="stretch")
-
-        left, right = st.columns(2)
-
-        with left:
-            st.markdown(
-                '<div class="section-title">Sales by BHK</div>',
-                unsafe_allow_html=True,
-            )
-
-            bhk_sales = (
-                filtered_df[filtered_df["BHK"].notna()].groupby("BHK", as_index=False)
-                .agg(
-                    SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
-                    TRANSACTIONS=("TXN_ID", "nunique"),
-                )
-                .sort_values("BHK")
-            )
-
-            chart = (
-                alt.Chart(bhk_sales)
-                .mark_bar()
-                .encode(
-                    x=alt.X("BHK:N", title="BHK", sort="ascending"),
-                    y=alt.Y(
-                        "SALES_VALUE:Q",
-                        title="Sales Value (₹ Lakhs)",
-                        axis=alt.Axis(format=",.0f"),
-                    ),
-                    tooltip=[
-                        alt.Tooltip("BHK:N", title="BHK"),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
-                        alt.Tooltip(
-                            "TRANSACTIONS:Q",
-                            title="Transactions",
-                        ),
-                    ],
-                )
-                .properties(height=205)
-            )
-            st.altair_chart(chart, width="stretch")
-
-        with right:
-            st.markdown(
-                '<div class="section-title">Project Status Distribution</div>',
-                unsafe_allow_html=True,
-            )
-
-            property_status = (
-                filtered_df.groupby("PROJECT_STATUS", as_index=False)
-                .agg(
-                    TRANSACTIONS=("TXN_ID", "nunique"),
-                    SALES_VALUE=("SALE_PRICE_LAKHS", "sum"),
-                )
-                .sort_values("TRANSACTIONS", ascending=False)
-            )
-
-            chart = (
-                alt.Chart(property_status)
-                .mark_bar()
-                .encode(
-                    x=alt.X("TRANSACTIONS:Q", title="Transactions"),
-                    y=alt.Y(
-                        "PROJECT_STATUS:N",
-                        sort="-x",
-                        title=None,
-                    ),
-                    tooltip=[
-                        alt.Tooltip(
-                            "PROJECT_STATUS:N",
-                            title="Project Status",
-                        ),
-                        alt.Tooltip(
-                            "TRANSACTIONS:Q",
-                            title="Transactions",
-                        ),
-                        alt.Tooltip(
-                            "SALES_VALUE:Q",
-                            title="Sales Value",
-                            format=",.2f",
-                        ),
-                    ],
-                )
-                .properties(height=205)
-            )
-            st.altair_chart(chart, width="stretch")
-
 # ============================================================
-# FOOTER / REFRESH INFORMATION
+# FOOTER
 # ============================================================
-
 st.sidebar.divider()
-st.sidebar.caption(
-    "Data source: SEMANTIC.VW_TRANSACTION_ANALYTICS"
-)
-st.sidebar.caption(
-    f"Source rows available: {len(df):,}"
-)
+st.sidebar.caption("Data source: SEMANTIC.VW_TRANSACTION_ANALYTICS")
+st.sidebar.caption(f"Source rows available: {len(df):,}")
