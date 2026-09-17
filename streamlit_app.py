@@ -49,38 +49,34 @@ st.markdown(
     """
     <style>
     /* ==========================================================
-       CLEAN SINGLE-VIEW BI DASHBOARD
-       UI ONLY — Snowflake/data logic is unchanged.
+       CLEAN BI DASHBOARD
+       UI/layout only. Data, Snowflake query and business logic
+       remain unchanged.
        ========================================================== */
 
     .main .block-container {
-        max-width: 1480px;
-        padding: 0.10rem 0.85rem 0.10rem 0.85rem;
-        margin-top: 0 !important;
-    }
-
-    [data-testid="stAppViewContainer"] .main {
-        padding-top: 0 !important;
+        max-width: 1500px;
+        padding: 0.45rem 1rem 0.4rem 1rem;
     }
 
     [data-testid="stHeader"] {
-        height: 1.7rem;
+        height: 1.8rem;
     }
 
-    /* Header */
+    /* App header */
     .top-title {
-        font-size: 24px;
+        font-size: 25px;
         font-weight: 750;
-        line-height: 1.0;
+        line-height: 1.05;
         color: #252b38;
         margin: 0;
     }
 
     .top-subtitle {
         font-size: 11px;
-        line-height: 1.0;
+        line-height: 1.2;
         color: #7b8494;
-        margin-top: 4px;
+        margin-top: 3px;
     }
 
     /* Navigation */
@@ -89,11 +85,11 @@ st.markdown(
     }
 
     div[data-testid="stRadio"] > div {
-        gap: 0.10rem;
+        gap: 0.15rem;
     }
 
     div[data-testid="stRadio"] label {
-        padding: 3px 9px !important;
+        padding: 4px 9px !important;
         font-size: 12px !important;
         line-height: 1.1 !important;
     }
@@ -102,74 +98,62 @@ st.markdown(
     [data-testid="stMetric"] {
         background: #ffffff;
         border: 1px solid #e2e6eb;
-        border-radius: 8px;
-        padding: 7px 10px;
-        min-height: 58px;
+        border-radius: 9px;
+        padding: 8px 11px;
+        min-height: 62px;
         box-shadow: 0 1px 2px rgba(0,0,0,0.04);
     }
 
     [data-testid="stMetricLabel"] {
         font-size: 11px !important;
-        line-height: 1.0 !important;
+        line-height: 1.1 !important;
         color: #697386 !important;
     }
 
     [data-testid="stMetricValue"] {
         font-size: 20px !important;
-        line-height: 1.05 !important;
+        line-height: 1.1 !important;
         font-weight: 720 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
     }
 
-    /* Page titles: reserve real space so subtitles/charts never overlap. */
-    .dashboard-title {
-        font-size: 20px;
-        font-weight: 750;
-        line-height: 1.05;
-        color: #252b38;
-        margin: 3px 0 0 0;
+    /* Native page headings */
+    [data-testid="stHeading"] {
+        margin-top: 0.15rem !important;
+        margin-bottom: 0.05rem !important;
     }
 
-    .dashboard-subtitle {
-        font-size: 10px;
-        line-height: 1.15;
-        color: #7b8494;
-        margin: 2px 0 5px 0;
+    [data-testid="stHeading"] h1 {
+        font-size: 21px !important;
+        line-height: 1.15 !important;
+        margin: 0 !important;
     }
 
-    .section-title {
-        font-size: 13px;
-        font-weight: 700;
-        line-height: 1.15;
-        color: #303746;
-        margin: 5px 0 1px 0;
-        min-height: 15px;
+    [data-testid="stCaptionContainer"] {
+        margin-top: 0 !important;
+        margin-bottom: 0.25rem !important;
     }
 
-    /* Every chart gets its own title row and its own vertical box. */
-    .chart-box {
-        background: #ffffff;
-        border: 1px solid #e6e9ee;
-        border-radius: 7px;
-        padding: 5px 7px 2px 7px;
-        box-sizing: border-box;
-        overflow: hidden;
+    [data-testid="stCaptionContainer"] p {
+        font-size: 10px !important;
+        line-height: 1.2 !important;
+        margin: 0 !important;
     }
 
-    /* Tight, predictable Streamlit spacing. */
+    /* Consistent row spacing */
     div[data-testid="stHorizontalBlock"] {
-        gap: 0.45rem;
+        gap: 0.55rem;
     }
 
     div[data-testid="stVerticalBlock"] {
-        gap: 0.35rem;
+        gap: 0.3rem;
     }
 
-    /* Filter popover */
+    /* Filters */
     div[data-testid="stPopoverBody"] {
-        width: min(1000px, 92vw) !important;
+        width: min(1050px, 92vw) !important;
     }
 
     div[data-testid="stPopoverBody"] div[data-testid="stHorizontalBlock"] {
@@ -188,14 +172,8 @@ st.markdown(
         font-size: 11px !important;
     }
 
-    /* Hide Streamlit footer. */
     footer {
         visibility: hidden;
-    }
-
-    /* Avoid horizontal overflow. */
-    html, body {
-        overflow-x: hidden !important;
     }
     </style>
     """,
@@ -517,6 +495,12 @@ def compact_chart(chart, height=145):
         chart
         .properties(height=height)
         .configure_view(strokeWidth=0)
+        .configure_title(
+            fontSize=13,
+            fontWeight=700,
+            anchor="start",
+            offset=5,
+        )
         .configure_axis(
             labelFontSize=9,
             titleFontSize=9,
@@ -526,13 +510,11 @@ def compact_chart(chart, height=145):
         .configure_legend(labelFontSize=9, titleFontSize=9)
     )
 
-def chart_card(title, chart, height=160):
-    # Each chart gets a real title row followed by a controlled chart area.
-    # This prevents titles from colliding with the chart canvas.
-    st.markdown(
-        f'<div class="section-title">{title}</div>',
-        unsafe_allow_html=True,
-    )
+def chart_card(title, chart, height=145):
+    # The chart title is embedded inside Altair's chart canvas.
+    # This guarantees that the title and chart have one controlled
+    # layout box and cannot overlap.
+    chart = chart.properties(title=title)
     st.altair_chart(compact_chart(chart, height=height), width="stretch")
 
 def empty_message():
@@ -543,11 +525,8 @@ def empty_message():
 # ============================================================
 if page == "Executive Summary":
 
-    st.markdown(
-        '<div class="dashboard-title">Executive Summary</div>'
-        '<div class="dashboard-subtitle">Executive performance overview across cities, developers and property segments</div>',
-        unsafe_allow_html=True,
-    )
+    st.title("Executive Summary")
+    st.caption("Executive performance overview across cities, developers and property segments")
 
     # Row 1: KPI strip — deliberately compact to match a BI dashboard.
     k1, k2, k3, k4, k5 = st.columns(5)
@@ -674,11 +653,8 @@ if page == "Executive Summary":
 # ============================================================
 elif page == "City Insights":
 
-    st.markdown(
-        '<div class="dashboard-title">City Insights</div>'
-        '<div class="dashboard-subtitle">Compare sales activity across cities, regions and city classes</div>',
-        unsafe_allow_html=True,
-    )
+    st.title("City Insights")
+    st.caption("Compare sales activity across cities, regions and city classes")
 
     city_perf = (
         filtered_df.groupby(["CITY_NAME", "REGION", "CITY_CLASS"], as_index=False)
@@ -746,32 +722,31 @@ elif page == "City Insights":
             .agg(SALES_VALUE=("SALE_PRICE_LAKHS", "sum"))
         )
 
-        chart_card(
-            "Segment Mix by City",
-            alt.Chart(segment_city)
-            .mark_bar()
-            .encode(
-                x=alt.X("CITY_NAME:N", title=None, sort="-y"),
-                y=alt.Y("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
-                color=alt.Color("SEGMENT:N", title="Segment"),
-                tooltip=[
-                    alt.Tooltip("CITY_NAME:N", title="City"),
-                    alt.Tooltip("SEGMENT:N", title="Segment"),
-                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
-                ],
-            ),
-        )
+        c3, c4 = st.columns([1.35, 1])
+        with c3:
+            chart_card(
+                "Segment Mix by City",
+                alt.Chart(segment_city)
+                .mark_bar()
+                .encode(
+                    x=alt.X("CITY_NAME:N", title=None, sort="-y"),
+                    y=alt.Y("SALES_VALUE:Q", title="Sales (₹ Lakhs)", axis=alt.Axis(format=",.0f")),
+                    color=alt.Color("SEGMENT:N", title="Segment"),
+                    tooltip=[
+                        alt.Tooltip("CITY_NAME:N", title="City"),
+                        alt.Tooltip("SEGMENT:N", title="Segment"),
+                        alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                    ],
+                ),
+            )
 
 # ============================================================
 # PAGE 3 — DEVELOPER PERFORMANCE
 # ============================================================
 elif page == "Developer Performance":
 
-    st.markdown(
-        '<div class="dashboard-title">Developer Performance</div>'
-        '<div class="dashboard-subtitle">Measure developer sales contribution and transaction volume</div>',
-        unsafe_allow_html=True,
-    )
+    st.title("Developer Performance")
+    st.caption("Measure developer sales contribution and transaction volume")
 
     dev = (
         filtered_df.groupby("DEVELOPER_NAME", as_index=False)
@@ -835,31 +810,33 @@ elif page == "Developer Performance":
             .sort_values("TRANSACTIONS", ascending=False)
         )
 
-        chart_card(
-            "Project Status Mix",
-            alt.Chart(status)
-            .mark_arc(innerRadius=38)
-            .encode(
-                theta=alt.Theta("TRANSACTIONS:Q"),
-                color=alt.Color("PROJECT_STATUS:N", title="Project Status"),
-                tooltip=[
-                    alt.Tooltip("PROJECT_STATUS:N", title="Status"),
-                    alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
-                    alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
-                ],
-            ),
-        )
+        c3, c4 = st.columns(2)
+        with c3:
+            # Keep the left half intentionally empty for balanced spacing.
+            st.empty()
+        with c4:
+            chart_card(
+                "Project Status Mix",
+                alt.Chart(status)
+                .mark_arc(innerRadius=38)
+                .encode(
+                    theta=alt.Theta("TRANSACTIONS:Q"),
+                    color=alt.Color("PROJECT_STATUS:N", title="Project Status"),
+                    tooltip=[
+                        alt.Tooltip("PROJECT_STATUS:N", title="Status"),
+                        alt.Tooltip("TRANSACTIONS:Q", title="Transactions"),
+                        alt.Tooltip("SALES_VALUE:Q", title="Sales (₹ Lakhs)", format=",.2f"),
+                    ],
+                ),
+            )
 
 # ============================================================
 # PAGE 4 — PROPERTY EXPLORER
 # ============================================================
 elif page == "Property Explorer":
 
-    st.markdown(
-        '<div class="dashboard-title">Property Explorer</div>'
-        '<div class="dashboard-subtitle">Explore property demand across type, segment, BHK and project status</div>',
-        unsafe_allow_html=True,
-    )
+    st.title("Property Explorer")
+    st.caption("Explore property demand across type, segment, BHK and project status")
 
     k1, k2, k3 = st.columns(3)
     with k1:
