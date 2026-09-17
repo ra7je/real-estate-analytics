@@ -49,72 +49,54 @@ st.markdown(
     """
     <style>
     /* ==========================================================
-       CLEAN QLIK-STYLE SINGLE-VIEW DASHBOARD
-       - No permanent sidebar
-       - Filters open in a compact popover
-       - Main dashboard stays uncluttered
-       - Two chart rows fit in the browser viewport
+       CLEAN SINGLE-VIEW BI DASHBOARD
+       UI ONLY — Snowflake/data logic is unchanged.
        ========================================================== */
 
-    html, body, [data-testid="stAppViewContainer"] {
-        overflow-x: hidden !important;
-    }
-
     .main .block-container {
-        max-width: 1500px;
-        padding: 0.35rem 1.0rem 0.25rem 1.0rem;
+        max-width: 1480px;
+        padding: 0.25rem 0.9rem 0.15rem 0.9rem;
     }
 
     [data-testid="stHeader"] {
-        height: 2rem;
+        height: 1.7rem;
     }
 
     /* Header */
-    .top-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin: 0 0 0.15rem 0;
-    }
-
     .top-title {
         font-size: 24px;
         font-weight: 750;
+        line-height: 1.0;
         color: #252b38;
-        line-height: 1.05;
         margin: 0;
     }
 
     .top-subtitle {
         font-size: 11px;
+        line-height: 1.0;
         color: #7b8494;
-        margin-top: 2px;
-    }
-
-    .row-tools {
-        display: flex;
-        align-items: center;
-        justify-content: flex-end;
-    }
-
-    .row-tools button {
-        min-height: 34px !important;
+        margin-top: 4px;
     }
 
     /* Navigation */
+    div[data-testid="stRadio"] {
+        margin: 0 !important;
+    }
+
     div[data-testid="stRadio"] > div {
-        gap: 0.15rem;
+        gap: 0.10rem;
     }
 
     div[data-testid="stRadio"] label {
-        padding: 4px 9px !important;
+        padding: 3px 9px !important;
         font-size: 12px !important;
+        line-height: 1.1 !important;
     }
 
-    /* Metrics */
+    /* KPI cards */
     [data-testid="stMetric"] {
-        background: #fff;
-        border: 1px solid #e4e7ec;
+        background: #ffffff;
+        border: 1px solid #e2e6eb;
         border-radius: 8px;
         padding: 7px 10px;
         min-height: 58px;
@@ -123,67 +105,69 @@ st.markdown(
 
     [data-testid="stMetricLabel"] {
         font-size: 11px !important;
+        line-height: 1.0 !important;
         color: #697386 !important;
     }
 
     [data-testid="stMetricValue"] {
         font-size: 20px !important;
-        font-weight: 720 !important;
         line-height: 1.05 !important;
+        font-weight: 720 !important;
         white-space: nowrap !important;
         overflow: hidden !important;
         text-overflow: ellipsis !important;
     }
 
-    /* Page title */
+    /* Page titles: reserve real space so subtitles/charts never overlap. */
     .dashboard-title {
-        font-size: 19px;
+        font-size: 20px;
         font-weight: 750;
-        color: #252b38;
-        margin: 0.1rem 0 0;
         line-height: 1.05;
+        color: #252b38;
+        margin: 3px 0 0 0;
     }
 
     .dashboard-subtitle {
-        color: #7b8494;
         font-size: 10px;
-        margin: 1px 0 3px;
+        line-height: 1.15;
+        color: #7b8494;
+        margin: 2px 0 5px 0;
     }
 
     .section-title {
         font-size: 13px;
         font-weight: 700;
+        line-height: 1.05;
         color: #303746;
-        margin: 0;
-        line-height: 1.0;
+        margin: 0 0 2px 0;
     }
 
-    /* Keep Streamlit rows tight. */
+    /* Every chart gets its own title row and its own vertical box. */
+    .chart-box {
+        background: #ffffff;
+        border: 1px solid #e6e9ee;
+        border-radius: 7px;
+        padding: 5px 7px 2px 7px;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    /* Tight, predictable Streamlit spacing. */
     div[data-testid="stHorizontalBlock"] {
-        gap: 0.55rem;
+        gap: 0.45rem;
     }
 
     div[data-testid="stVerticalBlock"] {
-        gap: 0.22rem;
+        gap: 0.18rem;
     }
 
-    /* Popover used for filters. */
-    div[data-testid="stPopover"] button {
-        min-height: 34px !important;
-    }
-
+    /* Filter popover */
     div[data-testid="stPopoverBody"] {
         width: min(1000px, 92vw) !important;
     }
 
-    div[data-testid="stPopoverBody"] [data-testid="stHorizontalBlock"] {
+    div[data-testid="stPopoverBody"] div[data-testid="stHorizontalBlock"] {
         gap: 0.45rem;
-    }
-
-    /* Compact select/date controls. */
-    div[data-testid="stDateInput"],
-    div[data-testid="stMultiSelect"] {
-        margin-bottom: 0.05rem !important;
     }
 
     div[data-testid="stDateInput"] label,
@@ -198,13 +182,15 @@ st.markdown(
         font-size: 11px !important;
     }
 
-    /* Chart toolbar */
-    div[data-testid="stElementToolbar"] {
-        transform: scale(0.82);
-        transform-origin: top right;
+    /* Hide Streamlit footer. */
+    footer {
+        visibility: hidden;
     }
 
-    footer { visibility: hidden; }
+    /* Avoid horizontal overflow. */
+    html, body {
+        overflow-x: hidden !important;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -416,40 +402,30 @@ def clean_numeric_columns(frame):
 
 
 # ============================================================
-# TOP HEADER + NAVIGATION + FILTER POPOVER
+# CLEAN TOP HEADER + NAVIGATION + FILTER POPOVER
 # ============================================================
-# The dashboard intentionally keeps filters out of the sidebar.
-# Clicking "Filters" opens a compact panel with all filters in
-# two rows. The main dashboard itself remains clean and visible.
-# Empty multi-select = ALL values.
-# ============================================================
-
 min_date = df["TXN_DATE"].min()
 max_date = df["TXN_DATE"].max()
 
-header_left, header_right = st.columns([5.8, 2.2])
+head_left, head_right = st.columns([6.8, 2.2])
 
-with header_left:
+with head_left:
     st.markdown(
         """
-        <div class="top-header">
-            <div>
-                <div class="top-title">Real Estate Analytics</div>
-                <div class="top-subtitle">Management Analytics Platform</div>
-            </div>
-        </div>
+        <div class="top-title">Real Estate Analytics</div>
+        <div class="top-subtitle">Management Analytics Platform</div>
         """,
         unsafe_allow_html=True,
     )
 
-with header_right:
+with head_right:
     st.markdown(
-        f'<div style="text-align:right;font-size:11px;color:#7b8494;padding-top:9px;">'
+        f'<div style="text-align:right;font-size:11px;color:#7b8494;padding-top:8px;">'
         f'Snowflake rows: {len(df):,}</div>',
         unsafe_allow_html=True,
     )
 
-nav_col, filter_col, refresh_col = st.columns([7.2, 1.25, 1.05])
+nav_col, filter_col, refresh_col = st.columns([7.3, 1.35, 1.0])
 
 with nav_col:
     page = st.radio(
@@ -478,7 +454,6 @@ with filter_col:
                 max_value=max_date,
                 key=f"date_range_{min_date}_{max_date}_{len(df)}",
             )
-
         with pf2:
             selected_cities = st.multiselect(
                 "City",
@@ -486,7 +461,6 @@ with filter_col:
                 default=[],
                 placeholder="All Cities",
             )
-
         with pf3:
             selected_regions = st.multiselect(
                 "Region",
@@ -494,7 +468,6 @@ with filter_col:
                 default=[],
                 placeholder="All Regions",
             )
-
         with pf4:
             selected_city_classes = st.multiselect(
                 "City Class",
@@ -502,7 +475,6 @@ with filter_col:
                 default=[],
                 placeholder="All Classes",
             )
-
         with pf5:
             selected_developers = st.multiselect(
                 "Developer",
@@ -520,7 +492,6 @@ with filter_col:
                 default=[],
                 placeholder="All Segments",
             )
-
         with pf7:
             selected_property_types = st.multiselect(
                 "Property Type",
@@ -528,7 +499,6 @@ with filter_col:
                 default=[],
                 placeholder="All Property Types",
             )
-
         with pf8:
             selected_project_statuses = st.multiselect(
                 "Project Status",
@@ -536,7 +506,6 @@ with filter_col:
                 default=[],
                 placeholder="All Project Statuses",
             )
-
         with pf9:
             selected_sales_channels = st.multiselect(
                 "Sales Channel",
@@ -544,7 +513,6 @@ with filter_col:
                 default=[],
                 placeholder="All Sales Channels",
             )
-
         with pf10:
             selected_txn_statuses = st.multiselect(
                 "Transaction Status",
@@ -619,7 +587,7 @@ cancellation_rate = (
 # ============================================================
 # COMPACT CHART HELPERS
 # ============================================================
-def compact_chart(chart, height=142):
+def compact_chart(chart, height=150):
     return (
         chart
         .properties(height=height)
