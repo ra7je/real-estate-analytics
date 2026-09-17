@@ -48,75 +48,142 @@ st_autorefresh(interval=60_000, key="real_estate_auto_refresh")
 st.markdown(
     """
     <style>
-    /* ========================================================
-       TRUE SINGLE-SCREEN BI LAYOUT
-       - No sidebar
-       - No vertical page scrolling
-       - Filters always visible at the top
-       - Dashboard content fits inside the viewport
-       ======================================================== */
+    /* ==========================================================
+       CLEAN QLIK-STYLE SINGLE-VIEW DASHBOARD
+       - No permanent sidebar
+       - Filters open in a compact popover
+       - Main dashboard stays uncluttered
+       - Two chart rows fit in the browser viewport
+       ========================================================== */
 
     html, body, [data-testid="stAppViewContainer"] {
-        overflow: hidden !important;
-    }
-
-    [data-testid="stHeader"] {
-        height: 1.6rem;
+        overflow-x: hidden !important;
     }
 
     .main .block-container {
-        max-width: 100%;
-        height: calc(100vh - 1.7rem);
-        overflow: hidden !important;
-        padding: 0.25rem 1.0rem 0.15rem 1.0rem;
+        max-width: 1500px;
+        padding: 0.35rem 1.0rem 0.25rem 1.0rem;
     }
 
-    .app-header {
+    [data-testid="stHeader"] {
+        height: 2rem;
+    }
+
+    /* Header */
+    .top-header {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        height: 48px;
-        margin-bottom: 2px;
+        justify-content: space-between;
+        margin: 0 0 0.15rem 0;
     }
 
-    .app-title {
-        font-size: 25px;
+    .top-title {
+        font-size: 24px;
         font-weight: 750;
-        line-height: 1.0;
-        color: #202735;
+        color: #252b38;
+        line-height: 1.05;
+        margin: 0;
     }
 
-    .app-subtitle {
+    .top-subtitle {
         font-size: 11px;
         color: #7b8494;
-        margin-top: 3px;
+        margin-top: 2px;
     }
 
-    .data-status {
-        font-size: 11px;
-        color: #7b8494;
-        white-space: nowrap;
+    .row-tools {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
     }
 
-    /* Horizontal navigation */
+    .row-tools button {
+        min-height: 34px !important;
+    }
+
+    /* Navigation */
     div[data-testid="stRadio"] > div {
         gap: 0.15rem;
     }
 
     div[data-testid="stRadio"] label {
-        padding: 4px 10px !important;
-        border-radius: 7px;
+        padding: 4px 9px !important;
         font-size: 12px !important;
     }
 
-    /* Filter widgets */
+    /* Metrics */
+    [data-testid="stMetric"] {
+        background: #fff;
+        border: 1px solid #e4e7ec;
+        border-radius: 8px;
+        padding: 7px 10px;
+        min-height: 58px;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+    }
+
+    [data-testid="stMetricLabel"] {
+        font-size: 11px !important;
+        color: #697386 !important;
+    }
+
+    [data-testid="stMetricValue"] {
+        font-size: 20px !important;
+        font-weight: 720 !important;
+        line-height: 1.05 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
+
+    /* Page title */
+    .dashboard-title {
+        font-size: 19px;
+        font-weight: 750;
+        color: #252b38;
+        margin: 0.1rem 0 0;
+        line-height: 1.05;
+    }
+
+    .dashboard-subtitle {
+        color: #7b8494;
+        font-size: 10px;
+        margin: 1px 0 3px;
+    }
+
+    .section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: #303746;
+        margin: 0;
+        line-height: 1.0;
+    }
+
+    /* Keep Streamlit rows tight. */
     div[data-testid="stHorizontalBlock"] {
+        gap: 0.55rem;
+    }
+
+    div[data-testid="stVerticalBlock"] {
+        gap: 0.22rem;
+    }
+
+    /* Popover used for filters. */
+    div[data-testid="stPopover"] button {
+        min-height: 34px !important;
+    }
+
+    div[data-testid="stPopoverBody"] {
+        width: min(1000px, 92vw) !important;
+    }
+
+    div[data-testid="stPopoverBody"] [data-testid="stHorizontalBlock"] {
         gap: 0.45rem;
     }
 
+    /* Compact select/date controls. */
     div[data-testid="stDateInput"],
     div[data-testid="stMultiSelect"] {
-        margin-bottom: 2px !important;
+        margin-bottom: 0.05rem !important;
     }
 
     div[data-testid="stDateInput"] label,
@@ -125,88 +192,19 @@ st.markdown(
         margin-bottom: 1px !important;
     }
 
-    div[data-baseweb="select"] {
-        min-height: 32px !important;
-    }
-
     div[data-baseweb="select"] > div {
         min-height: 32px !important;
         border-radius: 6px !important;
         font-size: 11px !important;
     }
 
-    /* Keep selected chips compact. */
-    div[data-baseweb="tag"] {
-        max-width: 100px !important;
-    }
-
-    div[data-baseweb="tag"] span {
-        font-size: 10px !important;
-    }
-
-    /* Metrics */
-    [data-testid="stMetric"] {
-        background: #ffffff;
-        border: 1px solid #e5e7eb;
-        border-radius: 9px;
-        padding: 7px 10px;
-        min-height: 60px;
-        box-shadow: 0 1px 2px rgba(0,0,0,0.04);
-    }
-
-    [data-testid="stMetricLabel"] {
-        font-size: 11px;
-        color: #6b7280;
-        line-height: 1.0;
-    }
-
-    [data-testid="stMetricValue"] {
-        font-size: 20px;
-        font-weight: 700;
-        line-height: 1.05;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    .dashboard-title {
-        font-size: 22px;
-        font-weight: 750;
-        line-height: 1.0;
-        margin: 2px 0 1px 0;
-    }
-
-    .dashboard-subtitle {
-        color: #6b7280;
-        font-size: 10px;
-        margin: 0 0 4px 0;
-    }
-
-    .section-title {
-        font-size: 13px;
-        font-weight: 700;
-        margin: 1px 0 1px 0;
-        color: #293241;
-    }
-
-    /* Remove excess Streamlit vertical gaps. */
-    div[data-testid="stVerticalBlock"] {
-        gap: 0.15rem;
-    }
-
-    hr {
-        margin: 2px 0 !important;
-    }
-
-    footer {
-        visibility: hidden;
-    }
-
-    /* Keep chart controls from consuming too much space. */
+    /* Chart toolbar */
     div[data-testid="stElementToolbar"] {
-        transform: scale(0.85);
+        transform: scale(0.82);
         transform-origin: top right;
     }
+
+    footer { visibility: hidden; }
     </style>
     """,
     unsafe_allow_html=True,
@@ -418,137 +416,145 @@ def clean_numeric_columns(frame):
 
 
 # ============================================================
-# TOP NAVIGATION + FILTER BAR
+# TOP HEADER + NAVIGATION + FILTER POPOVER
 # ============================================================
-# IMPORTANT DESIGN:
-#   There is NO sidebar in this version.
-#   Navigation and filters are kept at the top so the user never
-#   has to scroll just to change a filter.
-#
-#   Empty multiselect = ALL values.
+# The dashboard intentionally keeps filters out of the sidebar.
+# Clicking "Filters" opens a compact panel with all filters in
+# two rows. The main dashboard itself remains clean and visible.
+# Empty multi-select = ALL values.
 # ============================================================
 
-st.markdown(
-    """
-    <div class="app-header">
-        <div>
-            <div class="app-title">Real Estate Analytics</div>
-            <div class="app-subtitle">Management Analytics Platform</div>
-        </div>
-        <div class="data-status">Snowflake rows loaded: {}</div>
-    </div>
-    """.format(f"{len(df):,}"),
-    unsafe_allow_html=True,
-)
-
-# Navigation is horizontal instead of being inside a sidebar.
-page = st.radio(
-    "Navigate",
-    [
-        "Executive Summary",
-        "City Insights",
-        "Developer Performance",
-        "Property Explorer",
-    ],
-    horizontal=True,
-    label_visibility="collapsed",
-)
-
-# Compact filter bar. All filters remain visible without page scrolling.
 min_date = df["TXN_DATE"].min()
 max_date = df["TXN_DATE"].max()
 
-with st.container():
-    f1, f2, f3, f4, f5 = st.columns([1.25, 1, 1, 1, 1])
+header_left, header_right = st.columns([5.8, 2.2])
 
-    with f1:
-        date_range = st.date_input(
-            "Date Range",
-            value=(min_date, max_date),
-            min_value=min_date,
-            max_value=max_date,
-            key=f"date_range_{min_date}_{max_date}_{len(df)}",
-        )
+with header_left:
+    st.markdown(
+        """
+        <div class="top-header">
+            <div>
+                <div class="top-title">Real Estate Analytics</div>
+                <div class="top-subtitle">Management Analytics Platform</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-    with f2:
-        selected_cities = st.multiselect(
-            "City",
-            sorted(df["CITY_NAME"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Cities",
-        )
+with header_right:
+    st.markdown(
+        f'<div style="text-align:right;font-size:11px;color:#7b8494;padding-top:9px;">'
+        f'Snowflake rows: {len(df):,}</div>',
+        unsafe_allow_html=True,
+    )
 
-    with f3:
-        selected_regions = st.multiselect(
-            "Region",
-            sorted(df["REGION"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Regions",
-        )
+nav_col, filter_col, refresh_col = st.columns([7.2, 1.25, 1.05])
 
-    with f4:
-        selected_city_classes = st.multiselect(
-            "City Class",
-            sorted(df["CITY_CLASS"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Classes",
-        )
+with nav_col:
+    page = st.radio(
+        "Navigate",
+        [
+            "Executive Summary",
+            "City Insights",
+            "Developer Performance",
+            "Property Explorer",
+        ],
+        horizontal=True,
+        label_visibility="collapsed",
+    )
 
-    with f5:
-        selected_developers = st.multiselect(
-            "Developer",
-            sorted(df["DEVELOPER_NAME"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Developers",
-        )
+with filter_col:
+    with st.popover("🔎 Filters", use_container_width=True):
+        st.markdown("**Dashboard Filters**")
 
-with st.container():
-    f6, f7, f8, f9, f10 = st.columns([1, 1, 1, 1, 1])
+        pf1, pf2, pf3, pf4, pf5 = st.columns(5)
 
-    with f6:
-        selected_segments = st.multiselect(
-            "Segment",
-            sorted(df["SEGMENT"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Segments",
-        )
+        with pf1:
+            date_range = st.date_input(
+                "Date Range",
+                value=(min_date, max_date),
+                min_value=min_date,
+                max_value=max_date,
+                key=f"date_range_{min_date}_{max_date}_{len(df)}",
+            )
 
-    with f7:
-        selected_property_types = st.multiselect(
-            "Property Type",
-            sorted(df["PROPERTY_TYPE"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Property Types",
-        )
+        with pf2:
+            selected_cities = st.multiselect(
+                "City",
+                sorted(df["CITY_NAME"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Cities",
+            )
 
-    with f8:
-        selected_project_statuses = st.multiselect(
-            "Project Status",
-            sorted(df["PROJECT_STATUS"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Project Statuses",
-        )
+        with pf3:
+            selected_regions = st.multiselect(
+                "Region",
+                sorted(df["REGION"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Regions",
+            )
 
-    with f9:
-        selected_sales_channels = st.multiselect(
-            "Sales Channel",
-            sorted(df["SALES_CHANNEL"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Sales Channels",
-        )
+        with pf4:
+            selected_city_classes = st.multiselect(
+                "City Class",
+                sorted(df["CITY_CLASS"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Classes",
+            )
 
-    with f10:
-        selected_txn_statuses = st.multiselect(
-            "Transaction Status",
-            sorted(df["TXN_STATUS"].dropna().unique().tolist()),
-            default=[],
-            placeholder="All Transaction Statuses",
-        )
+        with pf5:
+            selected_developers = st.multiselect(
+                "Developer",
+                sorted(df["DEVELOPER_NAME"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Developers",
+            )
 
-# Manual refresh stays at the top-right and does not require sidebar scrolling.
-refresh_col, spacer = st.columns([1, 9])
+        pf6, pf7, pf8, pf9, pf10 = st.columns(5)
+
+        with pf6:
+            selected_segments = st.multiselect(
+                "Segment",
+                sorted(df["SEGMENT"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Segments",
+            )
+
+        with pf7:
+            selected_property_types = st.multiselect(
+                "Property Type",
+                sorted(df["PROPERTY_TYPE"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Property Types",
+            )
+
+        with pf8:
+            selected_project_statuses = st.multiselect(
+                "Project Status",
+                sorted(df["PROJECT_STATUS"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Project Statuses",
+            )
+
+        with pf9:
+            selected_sales_channels = st.multiselect(
+                "Sales Channel",
+                sorted(df["SALES_CHANNEL"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Sales Channels",
+            )
+
+        with pf10:
+            selected_txn_statuses = st.multiselect(
+                "Transaction Status",
+                sorted(df["TXN_STATUS"].dropna().unique().tolist()),
+                default=[],
+                placeholder="All Transaction Statuses",
+            )
+
 with refresh_col:
-    if st.button("↻ Refresh", width="stretch"):
+    if st.button("↻ Refresh", use_container_width=True):
         conn.reset()
         st.rerun()
 
@@ -613,7 +619,7 @@ cancellation_rate = (
 # ============================================================
 # COMPACT CHART HELPERS
 # ============================================================
-def compact_chart(chart, height=190):
+def compact_chart(chart, height=142):
     return (
         chart
         .properties(height=height)
@@ -639,7 +645,7 @@ def empty_message():
 # ============================================================
 if page == "Executive Summary":
 
-    st.markdown('<div class="dashboard-title">Real Estate Analytics</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dashboard-title">Executive Summary</div>', unsafe_allow_html=True)
     st.markdown(
         '<div class="dashboard-subtitle">Executive performance overview across cities, developers and property segments</div>',
         unsafe_allow_html=True,
