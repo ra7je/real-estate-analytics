@@ -164,7 +164,7 @@ st.markdown(
     }
 
     div[data-testid="stVerticalBlock"] {
-        gap: 0.18rem;
+        gap: 0.35rem;
     }
 
     /* Filter popover */
@@ -512,7 +512,7 @@ cancellation_rate = (
 # ============================================================
 # COMPACT CHART HELPERS
 # ============================================================
-def compact_chart(chart, height=160):
+def compact_chart(chart, height=145):
     return (
         chart
         .properties(height=height)
